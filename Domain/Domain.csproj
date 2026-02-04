@@ -11,8 +11,4 @@
     <PackageReference Include="NetTopologySuite" Version="2.6.0" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Entity\Identity\" />
-  </ItemGroup>
-
 </Project>

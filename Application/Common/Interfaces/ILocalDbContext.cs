@@ -13,8 +13,8 @@ namespace Application.Common.Interfaces
     {
         DatabaseFacade Database { get; }
         DbSet<ObjectType> ObjectType { get; set; }
-        DbSet<AppUser> User { get; set; }
-        DbSet<SocialObject> Object { get; set; }
+        DbSet<AppUser> AppUser { get; set; }
+        DbSet<SocialObject> SocialObject { get; set; }
         DbSet<Review> Review { get; set; }
         DbSet<ModerationHistory> ModerationHistory { get; set; }
 

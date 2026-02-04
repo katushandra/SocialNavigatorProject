@@ -13,7 +13,7 @@ namespace Domain.Entity.Enums
     {
         Pending, 
         Approved,
-        Rejecte, 
+        Rejected, 
         Archived
     }
 }
