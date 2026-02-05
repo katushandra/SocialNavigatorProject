@@ -3,6 +3,7 @@ using Domain.Entity;
 using Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Npgsql.EntityFrameworkCore.PostgreSQL;
 
 public class Program
 {
@@ -13,7 +14,9 @@ public class Program
         #region Services
         builder.Services.AddControllers();
         builder.Services.AddDbContext<LocalDbContext>(options =>
-            options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+            options.UseNpgsql(builder
+            .Configuration.GetConnectionString("DefaultConnection"),
+             npgsqlOptions => npgsqlOptions.UseNetTopologySuite()));
         builder.Services.AddIdentity<AppUser, IdentityRole<Guid>>()
             .AddEntityFrameworkStores<LocalDbContext>()
             .AddDefaultTokenProviders();

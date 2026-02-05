@@ -25,6 +25,7 @@ namespace Infrastructure.Persistence
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
+            builder.HasPostgresExtension("postgis");
 
             #region ObjectType
             builder.Entity<ObjectType>(entity =>

@@ -1,7 +1,6 @@
 ﻿using Domain.Entity.Enums;
 using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -34,7 +33,7 @@ namespace Domain.Entity
         /// <summary>
         /// координаты объекта
         /// </summary>
-        public NetTopologySuite.Geometries.Point? Location { get; set; }
+        public Point? Location { get; set; }
 
         /// <summary>
         /// схема проезда

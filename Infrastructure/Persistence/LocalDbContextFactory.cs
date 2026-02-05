@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 using Microsoft.Extensions.Configuration;
+using Npgsql.EntityFrameworkCore.PostgreSQL;
 
 namespace Infrastructure.Persistence
 {
@@ -18,8 +19,9 @@ namespace Infrastructure.Persistence
 
             var optionsBuilder = new DbContextOptionsBuilder<LocalDbContext>();
             optionsBuilder
-                .UseNpgsql(configuration.GetConnectionString("DefaultConnection"));
-
+                .UseNpgsql(
+                    configuration.GetConnectionString("DefaultConnection"),
+                    npgsqlOptions => npgsqlOptions.UseNetTopologySuite());
             return new LocalDbContext(optionsBuilder.Options);
         }
     }
