@@ -6,6 +6,7 @@ namespace Application.Common.Interfaces
 {
     public interface ILocalDbContext
     {
+        DbSet<AppUser> AppUser { get; set; }
         DatabaseFacade Database { get; }
         DbSet<ObjectType> ObjectType { get; set; }
         DbSet<SocialObject> SocialObject { get; set; }

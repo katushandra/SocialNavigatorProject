@@ -16,7 +16,7 @@ namespace Infrastructure.Persistence
         {
 
         }
-
+        public DbSet<AppUser> AppUser { get; set; }
         public DbSet<ObjectType> ObjectType { get; set; }
         public DbSet<SocialObject> SocialObject { get; set; }
         public DbSet<Review> Review { get; set; }
@@ -246,6 +246,9 @@ namespace Infrastructure.Persistence
                     .WithMany(u => u.Reviews)
                     .HasForeignKey(e => e.UserId)
                     .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasIndex(e => new { e.ObjectId, e.UserId })
+                    .IsUnique();
             });
             #endregion
 
@@ -293,13 +296,36 @@ namespace Infrastructure.Persistence
                     .OnDelete(DeleteBehavior.SetNull);
             });
             #endregion
-        }
-        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-        {
-            if (!optionsBuilder.IsConfigured)
-            {
 
-            }
+            #region Индексы
+            builder.Entity<SocialObject>()
+                .HasIndex(e => e.Status)
+                .HasDatabaseName("IObjectStatus");
+
+            builder.Entity<SocialObject>()
+                .HasIndex(e => e.ObjectTypeId)
+                .HasDatabaseName("IObjectType");
+
+            builder.Entity<Review>()
+                .HasIndex(e => e.ObjectId)
+                .HasDatabaseName("IReviewObject");
+
+            builder.Entity<Review>()
+                .HasIndex(e => e.UserId)
+                .HasDatabaseName("IReviewUser");
+
+            builder.Entity<ModerationHistory>()
+                .HasIndex(e => e.ObjectId)
+                .HasDatabaseName("IModerationObject");
+
+            builder.Entity<ModerationHistory>()
+                .HasIndex(e => e.ModeratorId)
+                .HasDatabaseName("IModerationModerator");
+
+            builder.Entity<Review>()
+                .HasIndex(e => new { e.ObjectId, e.Score })
+                .HasDatabaseName("IReviewScore");
+            #endregion
         }
         public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = new())
         {
