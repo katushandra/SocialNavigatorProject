@@ -1,5 +1,6 @@
 ﻿using Application.Common.Interfaces;
 using Domain.Entity;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
@@ -7,9 +8,8 @@ using System.Data;
 
 namespace Infrastructure.Persistence
 {
-    public class LocalDbContext : IdentityDbContext, ILocalDbContext
+    public class LocalDbContext : IdentityDbContext<AppUser, IdentityRole<Guid>, Guid>, ILocalDbContext
     {
-        public IDbConnection Connection => Database.GetDbConnection();
         public override DatabaseFacade Database => base.Database;
 
         public LocalDbContext(DbContextOptions<LocalDbContext> options) : base(options)
@@ -18,7 +18,6 @@ namespace Infrastructure.Persistence
         }
 
         public DbSet<ObjectType> ObjectType { get; set; }
-        public DbSet<AppUser> AppUser { get; set; }
         public DbSet<SocialObject> SocialObject { get; set; }
         public DbSet<Review> Review { get; set; }
         public DbSet<ModerationHistory> ModerationHistory { get; set; }
@@ -67,7 +66,7 @@ namespace Infrastructure.Persistence
                     .HasMaxLength(150);
 
                 entity.Property(e => e.UserName)
-                    .HasColumnName("Login")
+                    .HasColumnName("UserName")
                     .IsRequired()
                     .HasMaxLength(50);
 
@@ -77,14 +76,9 @@ namespace Infrastructure.Persistence
                     .HasMaxLength(255);
 
                 entity.Property(e => e.PasswordHash)
-                    .HasColumnName("Password")
+                    .HasColumnName("PasswordHash")
                     .IsRequired()
                     .HasMaxLength(255);
-
-                entity.Property(e => e.Role)
-                    .HasColumnName("Role")
-                    .IsRequired()
-                    .HasConversion<string>();
 
                 entity.Property(e => e.UserCreatedAt)
                     .HasColumnName("UserCreatedAt")
@@ -118,6 +112,14 @@ namespace Infrastructure.Persistence
                     .HasForeignKey(m => m.ModeratorId)
                     .OnDelete(DeleteBehavior.SetNull);
             });
+
+            builder.Entity<IdentityRoleClaim<Guid>>().ToTable("AppRoleClaim");
+            builder.Entity<IdentityRole<Guid>>().ToTable("AppRole");
+            builder.Entity<IdentityUserClaim<Guid>>().ToTable("AppUserClaim");
+            builder.Entity<IdentityUserLogin<Guid>>().ToTable("AppUserLogin");
+            builder.Entity<IdentityUserRole<Guid>>().ToTable("AppUserRole");
+            builder.Entity<IdentityUserToken<Guid>>().ToTable("AppUserToken");
+
             #endregion
             #region SocialObject
             builder.Entity<SocialObject>(entity =>
@@ -144,7 +146,7 @@ namespace Infrastructure.Persistence
 
                 entity.Property(e => e.Location)
                     .HasColumnName("Location")
-                    .HasColumnType("geography (point)");
+                    .HasColumnType("geography (point, 4326)");
 
                 entity.Property(e => e.RouteDescription)
                     .HasColumnName("RouteDescription");
@@ -234,10 +236,6 @@ namespace Infrastructure.Persistence
                     .HasColumnName("ReviewCreatedAt")
                     .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-                entity.HasIndex(e => e.ObjectId).HasDatabaseName("IReviewObject");
-                entity.HasIndex(e => e.UserId).HasDatabaseName("IReviewUser");
-                entity.HasIndex(e => new { e.ObjectId, e.Score }).HasDatabaseName("IReviewScore");
-
                 entity.HasOne(e => e.Object)
                     .WithMany(o => o.Reviews)
                     .HasForeignKey(e => e.ObjectId)
@@ -282,9 +280,6 @@ namespace Infrastructure.Persistence
                 entity.Property(e => e.ModeratedAt)
                     .HasColumnName("ModeratedAt")
                     .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-                entity.HasIndex(e => e.ObjectId).HasDatabaseName("IModerationObject");
-                entity.HasIndex(e => e.ModeratorId).HasDatabaseName("IModerationModerator");
 
                 entity.HasOne(e => e.Object)
                     .WithMany(o => o.ModerationHistories)

@@ -16,11 +16,6 @@ namespace Domain.Entity
         public string? FullName { get; set; }
 
         /// <summary>
-        /// роль пользователя
-        /// </summary>
-        public Role Role { get; set; } = Role.User;
-
-        /// <summary>
         /// дата создания пользовтаеля
         /// </summary>
         public DateTime UserCreatedAt { get; set; } = DateTime.UtcNow;
