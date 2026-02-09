@@ -12,7 +12,8 @@ public class Program
         var builder = WebApplication.CreateBuilder(args);
 
         #region Services
-        builder.Services.AddControllers();
+        builder.Services.AddControllersWithViews();
+        builder.Services.AddRazorPages();
         builder.Services.AddDbContext<LocalDbContext>(options =>
             options.UseNpgsql(builder
             .Configuration.GetConnectionString("DefaultConnection"),
@@ -29,8 +30,14 @@ public class Program
             var services = scope.ServiceProvider;
         }
 
-        app.UseAuthentication();
-        app.UseAuthorization();
+        app.UseStaticFiles();
+        app.UseRouting();
+        app.UseAuthentication(); 
+        app.UseAuthorization(); 
+        app.MapControllerRoute(
+           name: "default",
+           pattern: "{controller=Home}/{action=Index}/{id?}");
+        app.MapRazorPages();
 
         app.Run();
     }

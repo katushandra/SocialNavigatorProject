@@ -1,0 +1,117 @@
+﻿@{
+    ViewData["Title"] = "Главная страница";
+}
+
+<!-- Блок: обложка -->
+<div class="section bg-light position-relative overflow-hidden overlay-dark overlay-opacity-5 bg-cover jarallax" style="background-image:url('/frontend/demo.files/images/unsplash/covers/reza-rostampisheh--hcCm0kIaSg-unsplash.jpg')">
+
+    <div class="container position-relative z-index-2 d-middle py-5">
+
+        <div class="text-center text-white py-5 p-0-xs" data-aos="fade-in" data-aos-delay="0" data-aos-offset="0">
+
+            <!-- Заголовок -->
+            <h1 class="display-4 mb-0 fw-bold">
+                Карта доступности
+            </h1>
+
+            <!-- Описнаие -->
+            <p class="h5 fw-normal mb-0">
+                Найдите информацию о доступности городских объектов для маломобильных групп населения
+            </p>
+
+            <!-- Кнопки действий -->
+            <div class="clearfix mt-5">
+                <a href="#objects" class="btn btn-primary btn-pill scroll-to mx-2">
+                    <i class="fi fi-search me-2"></i>Найти объекты
+                </a>
+                <a href="#map" class="btn btn-outline-light btn-pill scroll-to mx-2">
+                    <i class="fi fi-map me-2"></i>Открыть карту
+                </a>
+            </div>
+
+        </div>
+
+    </div>
+</div>
+<!-- Блок: поиск объектов -->
+<div id="objects" class="section bg-white">
+    <div class="container">
+        <h2 class="h1 fw-bold text-center mb-5">Поиск объектов</h2>
+
+        <div class="row">
+            <div class="col-lg-8 mx-auto">
+                <!-- Форма поиска -->
+                <div class="card shadow-lg border-0">
+                    <div class="card-body p-4">
+                        <form id="searchForm" class="row g-4">
+                            <!-- Поле поиска -->
+                            <div class="col-12">
+                                <label for="searchQuery" class="form-label">Поиск по названию или адресу</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-transparent border-end-0">
+                                        <i class="fi fi-search"></i>
+                                    </span>
+                                    <input type="text"
+                                           class="form-control"
+                                           id="searchQuery"
+                                           placeholder="Введите название объекта или адрес...">
+                                </div>
+                            </div>
+
+                            <!-- Тип объекта -->
+                            <div class="col-12 mt-3">
+                                <label for="objectType" class="form-label">Тип объекта</label>
+                                <select class="form-select" id="objectType">
+                                    <option value="">Все типы</option>
+                                    <option value="mediko_socialnaya_ekspertiza">Медико-социальная экспертиза</option>
+                                    <option value="socialnaya_zaschita_naseleniya">Социальная защита населения</option>
+                                    <option value="zdravoohranenie">Здравоохранение</option>
+                                    <option value="obrazovanie">Образование</option>
+                                    <option value="inklyuzivny_detskiy_otdyh">Инклюзивный детский отдых</option>
+                                    <option value="kultura">Культура</option>
+                                    <option value="fizicheskaya_kultura_i_sport">Физическая культура и спорт</option>
+                                    <option value="sfr">СФР</option>
+                                    <option value="pfr">ПФР</option>
+                                    <option value="fss">ФСС</option>
+                                    <option value="nalogovaya_sluzhba">Налоговая служба</option>
+                                    <option value="svyaz_i_informaciya">Связь и информация</option>
+                                    <option value="zhilye_zdaniya_i_pomescheniya">Жилые здания и помещения</option>
+                                    <option value="potrebitelskiy_rynok_i_sfera_uslug">Потребительский рынок и сфера услуг</option>
+                                    <option value="mesta_prilozheniya_truda">Места приложения труда</option>
+                                    <option value="dorozhno_transportnye">Дорожно-транспортные</option>
+                                    <option value="administrativnye_organizacii_i_uchrezhdeniya">Административные организации и учреждения</option>
+                                    <option value="molodezhnaya_politika">Молодежная политика</option>
+                                </select>
+                            </div>
+
+                            <!-- Доступность -->
+                            <div class="col-12 mt-3">
+                                <label for="accessibility" class="form-label">Доступность</label>
+                                <select class="form-select" id="accessibility">
+                                    <option value="">Любая доступность</option>
+                                    <option value="wheelchairs">Для людей, передвигающихся на креслах-колясках</option>
+                                    <option value="blind_access">Для людей с нарушениями зрения</option>
+                                    <option value="deaf_access">Для людей с нарушениями слуха</option>
+                                    <option value="speech_access">Для людей с нарушениями речи</option>
+                                    <option value="mobility_access">Для людей с нарушениями опорно-двигательного аппарата</option>
+                                    <option value="intellectual_access">Для людей с умственными нарушениями</option>
+                                    <option value="autism_access">Для людей с нарушениями поведения и общения</option>
+                                </select>
+                            </div>
+
+                            <!-- Кнопки -->
+                            <div class="col-12 text-center mt-4">
+                                <button type="submit" class="btn btn-primary btn-lg px-5">
+                                    Найти
+                                </button>
+                                <button type="reset" class="btn btn-outline-secondary btn-lg px-5 ms-3">
+                                    Сбросить
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
