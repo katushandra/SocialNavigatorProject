@@ -1,4 +1,5 @@
 using Application.Common.Interfaces;
+using Application.Mapping;
 using Domain.Entity;
 using Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
@@ -18,9 +19,11 @@ public class Program
             options.UseNpgsql(builder
             .Configuration.GetConnectionString("DefaultConnection"),
              npgsqlOptions => npgsqlOptions.UseNetTopologySuite()));
+        builder.Services.AddScoped<ILocalDbContext, LocalDbContext>();
         builder.Services.AddIdentity<AppUser, IdentityRole<Guid>>()
             .AddEntityFrameworkStores<LocalDbContext>()
             .AddDefaultTokenProviders();
+        builder.Services.AddAutoMapper(typeof(MappingProfile));
         #endregion
 
         var app = builder.Build();
@@ -38,6 +41,11 @@ public class Program
            name: "default",
            pattern: "{controller=Home}/{action=Index}/{id?}");
         app.MapRazorPages();
+
+        app.MapControllerRoute(
+            name: "about",
+            pattern: "about",
+            defaults: new { controller = "Home", action = "About" });
 
         app.Run();
     }

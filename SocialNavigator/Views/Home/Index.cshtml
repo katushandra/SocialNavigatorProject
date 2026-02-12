@@ -1,40 +1,171 @@
-﻿@{
+﻿@model IEnumerable<Domain.DTO.SocialObjectDto>
+@{
     ViewData["Title"] = "Главная страница";
+    var objectTypes = ViewBag.ObjectTypes as IEnumerable<Domain.DTO.ObjectTypeDto> ?? new List<Domain.DTO.ObjectTypeDto>();
 }
 
 <!-- Блок: обложка -->
-<div class="section bg-light position-relative overflow-hidden overlay-dark overlay-opacity-5 bg-cover jarallax" style="background-image:url('/frontend/demo.files/images/unsplash/covers/reza-rostampisheh--hcCm0kIaSg-unsplash.jpg')">
+<div class="section jarallax" style="background-image:url('frontend/assets/images/background.png')">
+    <div class="container py-5">
+        <div class="row">
+            <div class="col-lg-8 mx-auto text-center">
+                <!-- Заголовок -->
+                <h1 class="display-4 fw-bold mb-4">Карта доступности</h1>
 
-    <div class="container position-relative z-index-2 d-middle py-5">
+                <!-- Описание -->
+                <p class="lead mb-0">Найдите информацию о доступности городских объектов для маломобильных групп населения</p>
 
-        <div class="text-center text-white py-5 p-0-xs" data-aos="fade-in" data-aos-delay="0" data-aos-offset="0">
-
-            <!-- Заголовок -->
-            <h1 class="display-4 mb-0 fw-bold">
-                Карта доступности
-            </h1>
-
-            <!-- Описнаие -->
-            <p class="h5 fw-normal mb-0">
-                Найдите информацию о доступности городских объектов для маломобильных групп населения
-            </p>
-
-            <!-- Кнопки действий -->
-            <div class="clearfix mt-5">
-                <a href="#objects" class="btn btn-primary btn-pill scroll-to mx-2">
-                    <i class="fi fi-search me-2"></i>Найти объекты
-                </a>
-                <a href="#map" class="btn btn-outline-light btn-pill scroll-to mx-2">
-                    <i class="fi fi-map me-2"></i>Открыть карту
-                </a>
+                <!-- Кнопки действий -->
+                <div class="clearfix mt-5">
+                    <a href="#objects" class="btn btn-primary btn-pill scroll-to mx-2">
+                        <i class="fi fi-search me-2"></i>Найти объекты
+                    </a>
+                    <a href="#map" class="btn btn-outline-light btn-pill scroll-to mx-2" style="border-color: var(--bs-primary); color: var(--bs-primary)">
+                        <i class="fi fi-map me-2"></i>Открыть карту
+                    </a>
+                </div>
             </div>
-
         </div>
-
     </div>
 </div>
+
+<!-- Блок: карта/список объектов -->
+<div id="objects" class="section bg-light">
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="h1 fw-bold mb-0">Объекты</h2>
+            <div class="btn-group" role="group">
+                <button type="button" class="btn btn-outline-primary active" data-view="list">
+                    <i class="fi fi-list"></i> Список
+                </button>
+                <button type="button" class="btn btn-outline-primary" data-view="map">
+                    <i class="fi fi-map"></i> Карта
+                </button>
+            </div>
+        </div>
+
+        <!-- Список -->
+        <div id="objects-container" class="row">
+            <div class="col-12">
+                @if (Model != null && Model.Any())
+                {
+                    @foreach (var obj in Model)
+                    {
+                        <div class="card mb-3">
+                            <div class="card-body">
+                                <h5 class="card-title">@obj.Name</h5>
+                                <p class="card-text text-muted">
+                                    <i class="fi fi-pin-2"></i> @obj.Address<br>
+                                    <i class="fi fi-arrow-end"></i> @obj.ObjectType?.NameObjectType
+                                </p>
+                                <div class="d-flex flex-wrap gap-2 mb-3">
+                                    @if (obj.Wheelchairs)
+                                    {
+                                        <span class="badge rounded-pill bg-success">На креслах-колясках</span>
+                                    }
+                                    @if (obj.BlindAccess)
+                                    {
+                                        <span class="badge rounded-pill bg-light text-dark">С нарушениями зрения</span>
+                                    }
+                                    @if (obj.DeafAccess)
+                                    {
+                                        <span class="badge rounded-pill bg-warning ">С нарушениями слуха</span>
+                                    }
+                                    @if (obj.SpeechAccess)
+                                    {
+                                        <span class="badge rounded-pill bg-primary-soft ">С нарушениями речи</span>
+                                    }
+                                    @if (obj.MobilityAccess)
+                                    {
+                                        <span class="badge rounded-pill bg-secondary">С нарушениями ОДА</span>
+                                    }
+                                    @if (obj.IntellectualAccess)
+                                    {
+                                        <span class="badge rounded-pill bg-danger">С умственными нарушениями</span>
+                                    }
+                                    @if (obj.AutismAccess)
+                                    {
+                                        <span class="badge rounded-pill bg-info">С нарушениями поведения и общения </span>
+                                    }
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <!-- Показ звезд -->
+                                    <div>
+                                        <span class="text-warning">
+                                            @{
+                                                var score = obj.ScoreObject;
+                                                for (int i = 0; i < 5; i++)
+                                                {
+                                                    if (i < Math.Floor(score))
+                                                    {
+                                                        <i class="fi fi-star-filled"></i>
+                                                    }
+                                                    else if (i < score)
+                                                    {
+                                                        <i class="fi fi-star-half"></i>
+                                                    }
+                                                    else
+                                                    {
+                                                        <i class="fi fi-star"></i>
+                                                    }
+                                                }
+                                            }
+                                        </span>
+                                        <span class="ms-2">@obj.ScoreObject.ToString("F1")</span>
+                                    </div>
+                                    <a href="/object/@obj.IdObject" class="btn btn-sm btn-primary">
+                                        Подробнее
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="alert alert-info">
+                        На данный момент нет доступных объектов для отображения.
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Карта -->
+        <div id="map-container" class="row d-none">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body text-center py-5">
+                       
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- переключение между списком и картой -->
+<script>
+    document.querySelectorAll('[data-view]').forEach(button => {
+        button.addEventListener('click', function() {
+            const view = this.getAttribute('data-view');
+
+            document.querySelectorAll('[data-view]').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            this.classList.add('active');
+
+            if (view === 'list') {
+                document.getElementById('objects-container').classList.remove('d-none');
+                document.getElementById('map-container').classList.add('d-none');
+            } else {
+                document.getElementById('objects-container').classList.add('d-none');
+                document.getElementById('map-container').classList.remove('d-none');
+            }
+        });
+    });
+</script>
+
 <!-- Блок: поиск объектов -->
-<div id="objects" class="section bg-white">
+<div id="search" class="section bg-white">
     <div class="container">
         <h2 class="h1 fw-bold text-center mb-5">Поиск объектов</h2>
 
