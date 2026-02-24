@@ -1,0 +1,223 @@
+﻿@model Domain.DTO.FullSocialObjectDto
+@{
+    ViewData["Title"] = Model.SocialObjectDto?.Name ?? "Карточка объекта";
+    var obj = Model.SocialObjectDto;
+}
+
+<!-- Блок: обложка -->
+<div class="section jarallax" style="background-image:url('frontend/assets/images/background.png')">
+    <div class="container py-5">
+        <div class="row">
+            <div class="col-lg-8 mx-auto text-center">
+                <!-- Название объекта -->
+                <h1 class="display-4 fw-bold mb-4">@obj?.Name</h1>
+
+                <!-- Тип объекта -->
+                <div class="mb-3">
+                    <span class="badge bg-primary text-white px-4 py-2 rounded-pill">
+                        <i class="fi fi-arrow-end me-2"></i>@obj?.ObjectType?.NameObjectType
+                    </span>
+                </div>
+
+                <!-- Адрес -->
+                <p class="lead text-white-80 mb-0">
+                    <i class="fi fi-pin-2 me-2"></i>@obj?.Address
+                </p>
+
+                <!-- Кнопка -->
+                <div class="clearfix mt-5">
+                    <a href="/#objects" class="btn btn-outline-light btn-pill scroll-to mx-2" style="border-color: var(--bs-primary); color: var(--bs-primary)">
+                        <i class="fi fi-arrow-left"></i> Назад
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Блок: вся информация -->
+<div class="section bg-light py-5">
+    <div class="container">
+        <div class="row g-4">
+            <!-- Левая колонка -->
+            <div class="col-lg-8">
+                <!-- Блок с описанием -->
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-body p-4">
+                        <h2 class="h4 fw-bold mb-3">
+                            <i class="fi fi-squared-info text-primary me-2"></i>Описание
+                        </h2>
+                        <p class="mb-0">@(!string.IsNullOrEmpty(Model.Description) ? Model.Description : "Описание отсутствует")</p>
+                    </div>
+                </div>
+
+                <!-- Блок доступности -->
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-body p-4">
+                        <h2 class="h4 fw-bold mb-3">
+                            <i class="fi fi-check text-primary me-2"></i>Доступность
+                        </h2>
+                        <div class="d-flex flex-wrap gap-2">
+                            @if (obj != null)
+                            {
+                                @if (obj.Wheelchairs)
+                                {
+                                    <span class="badge rounded-pill bg-success">На креслах-колясках</span>
+                                }
+                                @if (obj.BlindAccess)
+                                {
+                                    <span class="badge rounded-pill bg-light text-dark">С нарушениями зрения</span>
+                                }
+                                @if (obj.DeafAccess)
+                                {
+                                    <span class="badge rounded-pill bg-warning">С нарушениями слуха</span>
+                                }
+                                @if (obj.SpeechAccess)
+                                {
+                                    <span class="badge rounded-pill bg-primary-soft">С нарушениями речи</span>
+                                }
+                                @if (obj.MobilityAccess)
+                                {
+                                    <span class="badge rounded-pill bg-secondary">С нарушениями ОДА</span>
+                                }
+                                @if (obj.IntellectualAccess)
+                                {
+                                    <span class="badge rounded-pill bg-danger">С умственными нарушениями</span>
+                                }
+                                @if (obj.AutismAccess)
+                                {
+                                    <span class="badge rounded-pill bg-info">С нарушениями поведения и общения</span>
+                                }
+
+                                @if (!obj.Wheelchairs && !obj.BlindAccess && !obj.DeafAccess && !obj.SpeechAccess &&
+                                                            !obj.MobilityAccess && !obj.IntellectualAccess && !obj.AutismAccess)
+                                {
+                                    <span class="text-muted">Информация о доступности отсутствует</span>
+                                }
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Блок с отзывами -->
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body p-4">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h2 class="h4 fw-bold mb-0">
+                                <i class="fi fi-star-empty text-primary me-2"></i>Отзывы
+                            </h2>                           
+                        </div>
+
+                        @if (Model.Reviews != null && Model.Reviews.Any())
+                        {
+                            <div class="reviews-list">
+                                @foreach (var review in Model.Reviews)
+                                {
+                                    <div class="card mb-3 border-0 bg-white">
+                                        <div class="card-body">
+                                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                                <div>
+                                                    <h6 class="fw-bold mb-1">@(review.AppUser?.FullName ?? "Аноним")</h6>
+                                                    <small class="text-muted">@review.ReviewCreatedAt.ToString("dd MMMM yyyy")</small>
+                                                </div>
+                                                <div class="text-warning">
+                                                    @{
+                                                        for (int i = 0; i < 5; i++)
+                                                        {
+                                                            if (i < Math.Floor(review.Score))
+                                                            {
+                                                                <i class="fi fi-star-filled"></i>
+                                                            }
+                                                            else if (i < review.Score)
+                                                            {
+                                                                <i class="fi fi-star-half"></i>
+                                                            }
+                                                            else
+                                                            {
+                                                                <i class="fi fi-star"></i>
+                                                            }
+                                                        }
+                                                    }
+                                                    <span class="ms-2 text-dark">@review.Score.ToString("F1")</span>
+                                                </div>
+                                            </div>
+                                            <p class="card-text mb-0">@review.Comment</p>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+
+                            <!-- Кнопка добавить отзыв-->
+                            <div class="text-center mt-4">
+                                <button class="btn btn-primary">
+                                    <i class="fi fi-plus me-2"></i>Добавить отзыв
+                                </button>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="text-center py-5">
+                                <h5 class="fw-bold">Пока нет отзывов</h5>
+                                <p class="text-muted">Будьте первым, кто оставит отзыв об этом объекте</p>
+                                <button class="btn btn-primary" >
+                                    <i class="fi fi-plus me-2"></i>Добавить отзыв
+                                </button>    
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Правая колонка -->
+            <div class="col-lg-4">
+                <!-- Рейтинг -->
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-body p-4 text-center">
+                        <h3 class="display-1 fw-bold text-primary mb-2">@obj?.ScoreObject.ToString("F1")</h3>
+                        <!-- Звезды рейтинга -->
+                        <div class="mb-3">
+                            <span class="text-warning">
+                                @{
+                                    var score = obj?.ScoreObject ?? 0;
+                                    for (int i = 0; i < 5; i++)
+                                    {
+                                        if (i < Math.Floor(score))
+                                        {
+                                            <i class="fi fi-star-filled fs-4"></i>
+                                        }
+                                        else if (i < score)
+                                        {
+                                            <i class="fi fi-star-half fs-4"></i>
+                                        }
+                                        else
+                                        {
+                                            <i class="fi fi-star fs-4"></i>
+                                        }
+                                    }
+                                }
+                            </span>
+                        </div>
+                        <p class="text-muted mb-0">Общая оценка на основе @Model.Reviews.Count отзывов</p>
+                    </div>
+                </div>
+
+                <!-- Местоположение -->
+                @if (!string.IsNullOrEmpty(obj?.Address))
+                {
+                    <div class="card border-0 shadow-sm mb-4">
+                        <div class="card-body p-4">
+                            <h5 class="fw-bold mb-3">
+                                <i class="fi fi-map text-primary me-2"></i>Местоположение
+                            </h5>
+                            <p class="mb-2">
+                                <i class="fi fi-pin-2 me-2 text-muted"></i>@obj.Address
+                            </p>
+
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+

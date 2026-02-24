@@ -47,6 +47,10 @@ public class Program
             pattern: "about",
             defaults: new { controller = "Home", action = "About" });
 
+        app.MapControllerRoute(
+            name: "objectsFull",
+            pattern: "object/full/{id}",
+            defaults: new { controller = "Object", action = "Full" });
         app.Run();
     }
 }

@@ -1,7 +1,6 @@
 ﻿@model IEnumerable<Domain.DTO.SocialObjectDto>
 @{
     ViewData["Title"] = "Главная страница";
-    var objectTypes = ViewBag.ObjectTypes as IEnumerable<Domain.DTO.ObjectTypeDto> ?? new List<Domain.DTO.ObjectTypeDto>();
 }
 
 <!-- Блок: обложка -->
@@ -53,10 +52,12 @@
                     {
                         <div class="card mb-3">
                             <div class="card-body">
-                                <h5 class="card-title">@obj.Name</h5>
+                                <h5 class="card-title mb-2">@obj.Name</h5>
                                 <p class="card-text text-muted">
                                     <i class="fi fi-pin-2"></i> @obj.Address<br>
-                                    <i class="fi fi-arrow-end"></i> @obj.ObjectType?.NameObjectType
+                                    <span class="badge rounded-pill bg-primary text-white px-4 mb-2">
+                                        <i class="fi fi-arrow-end"></i>@obj?.ObjectType?.NameObjectType
+                                    </span>
                                 </p>
                                 <div class="d-flex flex-wrap gap-2 mb-3">
                                     @if (obj.Wheelchairs)
@@ -113,7 +114,7 @@
                                         </span>
                                         <span class="ms-2">@obj.ScoreObject.ToString("F1")</span>
                                     </div>
-                                    <a href="/object/@obj.IdObject" class="btn btn-sm btn-primary">
+                                    <a href="/object/full/@obj.IdObject" class="btn btn-sm btn-primary">
                                         Подробнее
                                     </a>
                                 </div>
