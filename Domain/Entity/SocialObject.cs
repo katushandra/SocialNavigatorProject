@@ -113,7 +113,7 @@ namespace Domain.Entity
         public ObjectType ObjectType { get; set; } = null!;
         public AppUser Creator { get; set; } = null!;
         public AppUser? Editor { get; set; }
-        public required ICollection<Review> Reviews { get; set; } 
-        public required ICollection<ModerationHistory> ModerationHistories { get; set; }
+        public ICollection<Review> Reviews { get; set; } 
+        public ICollection<ModerationHistory> ModerationHistories { get; set; }
     }
 }

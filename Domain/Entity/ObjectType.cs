@@ -26,6 +26,6 @@ namespace Domain.Entity
         /// </summary>
         public string? Description { get; set; }
 
-        public required ICollection<SocialObject> Objects { get; set; }
+        public ICollection<SocialObject> Objects { get; set; }
     }
 }

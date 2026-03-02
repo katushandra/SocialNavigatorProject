@@ -30,9 +30,9 @@ namespace Domain.Entity
         /// </summary>
         public bool Active { get; set; } = true;
 
-        public required ICollection<SocialObject> CreatedObjects { get; set; }
-        public required ICollection<SocialObject> EditedObjects { get; set; }
-        public required ICollection<Review> Reviews { get; set; }
-        public required ICollection<ModerationHistory> ModerationHistories { get; set; }
+        public ICollection<SocialObject> CreatedObjects { get; set; }
+        public ICollection<SocialObject> EditedObjects { get; set; }
+        public ICollection<Review> Reviews { get; set; }
+        public ICollection<ModerationHistory> ModerationHistories { get; set; }
     }
 }

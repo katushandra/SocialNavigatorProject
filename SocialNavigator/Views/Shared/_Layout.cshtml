@@ -1,4 +1,13 @@
-﻿<!doctype html>
+﻿@using Microsoft.AspNetCore.Identity
+@using Domain.Entity
+@inject SignInManager<AppUser> SignInManager
+@inject UserManager<AppUser> UserManager
+@{
+    var user = await UserManager.GetUserAsync(User);
+    var userFullName = user?.FullName ?? user?.UserName;
+}
+
+<!doctype html>
 <html lang="ru" xmlns="http://www.w3.org/1999/xhtml">
 <head>
     <meta charset="UTF-8">
@@ -99,47 +108,58 @@
 
             <!-- OPTIONS -->
             <ul class="list-inline list-unstyled mb-0 d-flex align-items-end">
+                 @if (SignInManager.IsSignedIn(User))
+                {
+                    // для автоизованного пользователя
+                    <li class="list-inline-item mx-1 float-start">
+                        <a href="/object/add" class="btn btn-sm btn-outline-light rounded-pill">
+                            <i class="fi fi-plus me-1"></i>Добавить объект
+                        </a>
+                    </li>
 
-                <li class="list-inline-item mx-1 float-start">
-                    <a href="/object/add" class="btn btn-sm btn-outline-light rounded-pill">
-                        <i class="fi fi-plus me-1"></i>Добавить объект
-                    </a>
-                </li>
+                    <li class="list-inline-item mx-1 dropdown float-start">
 
-                <li class="list-inline-item mx-1 dropdown float-start">
+                        <a href="#" id="dropdownAccountOptions" class="btn btn-sm rounded-circle btn-primary js-stoppropag" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">
+                            <span class="group-icon">
+                                <i class="fi fi-user-male"></i>
+                                <i class="fi fi-close"></i>
+                            </span>
+                        </a>
 
-                    <a href="#" id="dropdownAccountOptions" class="btn btn-sm rounded-circle btn-primary js-stoppropag" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">
-                        <span class="group-icon">
-                            <i class="fi fi-user-male"></i>
-                            <i class="fi fi-close"></i>
-                        </span>
-                    </a>
-
-                    <div aria-labelledby="dropdownAccountOptions" class="prefix-link-icon prefix-icon-dot dropdown-menu dropdown-menu-clean dropdown-click-ignore end-0 p-2" style="min-width:215px;">
-                        <div class="list-unstyled">
-                            <div class="dropdown-header">
-                                Имя Фамилия
+                        <div aria-labelledby="dropdownAccountOptions" class="prefix-link-icon prefix-icon-dot dropdown-menu dropdown-menu-clean dropdown-click-ignore end-0 p-2" style="min-width:215px;">
+                            <div class="list-unstyled">
+                                <div class="dropdown-header">
+                                    @userFullName
+                                </div>
+                                <div class="dropdown-divider"></div>
+                                <a asp-controller="Profile" asp-action="ProfileHome" class="dropdown-item text-truncate fw-light active">
+                                    Мой профиль
+                                </a>
+                                <a asp-controller ="Profile" asp-action="MyObjects" class="dropdown-item text-truncate fw-light">
+                                    Mои объекты
+                                </a>
+                                <a asp-controller="Profile" asp-action="MyReviews" class="dropdown-item text-truncate fw-light">
+                                    Mои отзывы
+                                </a>
+                                <div class="dropdown-divider mb-0"></div>
+                                <a asp-controller="Account" asp-action="Logout" class="prefix-icon-ignore dropdown-footer dropdown-custom-ignore">
+                                    <i class="fi fi-power float-start"></i>
+                                    Выйти
+                                </a>
                             </div>
-                            <div class="dropdown-divider"></div>
-                            <a href="/profile" class="dropdown-item text-truncate fw-light active">
-                                Мой профиль
-                            </a>
-                            <a href="/profile/myоbjects" class="dropdown-item text-truncate fw-light">
-                                Mои объекты
-                            </a>
-                            <a href="/profile/myreviews" class="dropdown-item text-truncate fw-light">
-                                Mои отзывы
-                            </a>
-                            <div class="dropdown-divider mb-0"></div>
-                            <a href="/logout" class="prefix-icon-ignore dropdown-footer dropdown-custom-ignore">
-                                <i class="fi fi-power float-start"></i>
-                                Выйти
-                            </a>
                         </div>
-                    </div>
 
-                </li>
-
+                    </li>
+                }
+                else
+                {
+                    // для неавторизованного пользователя
+                    <li class="list-inline-item mx-1 float-start">
+                        <a asp-controller="Account" asp-action="Login" class="btn btn-sm btn-outline-light rounded-pill">
+                            Войти
+                        </a>
+                    </li>
+                }
             </ul>
         </nav>
     </header>
@@ -186,7 +206,7 @@
 
     <script src="~/frontend/assets/js/core.min.js"></script>
     <script src="~/frontend/assets/js/vendor_bundle.min.js"></script>
-
+ 
     @RenderSection("Scripts", required: false)
 </body>
 </html>

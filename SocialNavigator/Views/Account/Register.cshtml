@@ -1,0 +1,81 @@
+﻿@model Domain.DTO.RegisterDto
+@{
+    ViewData["Title"] = "Регистрация";
+}
+
+<div class="d-lg-flex text-white min-vh-100" style="background-image:url('/frontend/assets/images/background.png')">
+    <div class="col-12 col-lg-5 d-lg-flex">
+        <div class="w-100 align-self-center">
+            <div class="py-7 px-5">
+                <h1 class="d-inline-block text-align-end text-center-md text-center-xs display-4 w-100 max-w-600">
+                    Регистрация
+                    <span class="display-3 d-block fw-medium">
+                        Социальный навигатор
+                    </span>
+                </h1>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-lg-7 d-lg-flex">
+        <div class="w-100 align-self-center text-center-md text-center-xs p-2">
+            <form asp-controller="Account" asp-action="Register" method="post" class="bs-validate p-5 py-6 rounded d-inline-block bg-white text-dark w-100 max-w-600">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="returnUrl" value="@ViewData["ReturnUrl"]" />
+                
+                <div class="form-floating mb-3">
+                    <input asp-for="FullName" class="form-control" placeholder="ФИО" />
+                    <label asp-for="FullName">ФИО</label>
+                    <span asp-validation-for="FullName" class="text-danger small"></span>
+                </div>
+
+                <div class="form-floating mb-3">
+                    <input asp-for="UserName" class="form-control" placeholder="Логин" />
+                    <label asp-for="UserName">Логин</label>
+                    <span asp-validation-for="UserName" class="text-danger small"></span>
+                </div>
+
+                <div class="form-floating mb-3">
+                    <input asp-for="Email" class="form-control" placeholder="Email" type="email" />
+                    <label asp-for="Email">Email</label>
+                    <span asp-validation-for="Email" class="text-danger small"></span>
+                </div>
+
+                <div class="form-floating mb-3">
+                    <input asp-for="Password" class="form-control" placeholder="Пароль" type="password" />
+                    <label asp-for="Password">Пароль</label>
+                    <span asp-validation-for="Password" class="text-danger small"></span>
+                </div>
+
+                <div class="form-floating mb-3">
+                    <input asp-for="PasswordConfirm" class="form-control" placeholder="Подтверждение пароля" type="password" />
+                    <label asp-for="PasswordConfirm">Подтверждение пароля</label>
+                    <span asp-validation-for="PasswordConfirm" class="text-danger small"></span>
+                </div>
+
+                <div class="form-check mb-3 border p-3 rounded">
+                    <div class="form-check">
+                        <input required class="form-check-input" id="contact_gdpr" name="contact_gdpr" type="checkbox" value="1">
+                        <label class="form-check-label" for="contact_gdpr">
+                            Я согласен на обработку <a class="text-decoration-none" href="personal.html" target="_blank">персональных данных</a>
+                            в соответствии с <a class="text-decoration-none" href="confidentiality.html" target="_blank"> политикой конфиденциальности</a>.
+                        </label>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-12 col-md-6">
+                        <button type="submit" class="btn btn-primary w-100">
+                            Зарегистрироваться
+                        </button>
+                    </div>
+                    <div class="col-12 col-md-6 mb-4 text-align-end text-center-xs">
+                        <a asp-controller="Account" asp-action="Login" class="btn px-0 link-normal">
+                            Уже есть аккаунт? Войти
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

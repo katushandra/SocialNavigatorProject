@@ -114,7 +114,7 @@
                                         </span>
                                         <span class="ms-2">@obj.ScoreObject.ToString("F1")</span>
                                     </div>
-                                    <a href="/object/full/@obj.IdObject" class="btn btn-sm btn-primary">
+                                    <a asp-controller="Object" asp-action="Full" asp-route-id="@obj.IdObject" class="btn btn-sm btn-primary">
                                         Подробнее
                                     </a>
                                 </div>
@@ -233,10 +233,10 @@
 
                             <!-- Кнопки -->
                             <div class="col-12 text-center mt-4">
-                                <button type="submit" class="btn btn-primary btn-lg px-5">
+                                <button type="submit" class="btn btn-primary btn-pill scroll-to mx-2 px-5 ms-3">
                                     Найти
                                 </button>
-                                <button type="reset" class="btn btn-outline-secondary btn-lg px-5 ms-3">
+                                <button type="reset" class="btn btn-outline-secondary btn-pill scroll-to mx-2 px-5 ms-3">
                                     Сбросить
                                 </button>
                             </div>
