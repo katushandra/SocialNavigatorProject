@@ -66,11 +66,25 @@
                     </h5>
                 </div>
                 <div class="card-body p-4">
+
+                    @if (TempData["SuccessMessage"] != null)
+                    {
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            @TempData["SuccessMessage"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    }
+
                     <form asp-controller="Profile" asp-action="UpdateProfile" method="post" class="needs-validation">
                         @Html.AntiForgeryToken()
 
+                        <input type="hidden" asp-for="IdUser" />
+                        <input type="hidden" asp-for="UserCreatedAt" />
+                        <input type="hidden" asp-for="UserName" />
+                        <input type="hidden" asp-for="Role" />
+
                         <div class="form-floating mb-3">
-                            @Html.TextBoxFor(m => m.UserCreatedAt, new { @class = "form-control", placeholder = "Дата регистрации", @readonly = "readonly" })
+                            @Html.TextBoxFor(m => m.UserCreatedAt, new { @class = "form-control", placeholder = "Дата регистрации", @readonly = "readonly", disabled = "disabled" })
                             @Html.LabelFor(m => m.UserCreatedAt, "Дата регистрации")
                         </div>
 
@@ -81,7 +95,7 @@
                         </div>
 
                         <div class="form-floating mb-3">
-                            @Html.TextBoxFor(m => m.UserName, new { @class = "form-control", placeholder = "Логин", @readonly = "readonly"})
+                            @Html.TextBoxFor(m => m.UserName, new { @class = "form-control", placeholder = "Логин", @readonly = "readonly", disabled = "disabled" })
                             @Html.LabelFor(m => m.UserName, "Логин")
                             <small class="text-muted">Логин нельзя изменить</small>
                         </div>
