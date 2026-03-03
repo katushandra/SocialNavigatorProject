@@ -2,6 +2,7 @@
 using AutoMapper;
 using Domain.DTO;
 using Domain.Entity;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
@@ -10,19 +11,19 @@ namespace SocialNavigator.Controllers
 {
     public class AccountController : Controller
     {
-        private readonly ILocalDbContext context;
         private readonly IMapper mapper;
         private readonly ILogger<AccountController> logger;
         private readonly UserManager<AppUser> userManager;
         private readonly SignInManager<AppUser> signInManager;
+        private readonly IEmailService emailService;
 
-        public AccountController(ILocalDbContext context, IMapper mapper, ILogger<AccountController> logger, UserManager<AppUser> userManager, SignInManager<AppUser> signInManager)
+        public AccountController(IMapper mapper, ILogger<AccountController> logger, UserManager<AppUser> userManager, SignInManager<AppUser> signInManager, IEmailService emailService)
         {
-            this.context = context;
             this.mapper = mapper;
             this.logger = logger;
             this.userManager = userManager;
             this.signInManager = signInManager;
+            this.emailService = emailService;
         }
 
         #region Login Вход
@@ -45,6 +46,15 @@ namespace SocialNavigator.Controllers
             }
 
             var user = await userManager.FindByNameAsync(model.UserName);
+
+            if (user != null)
+            {
+                if (!await userManager.IsEmailConfirmedAsync(user))
+                {
+                    ModelState.AddModelError(nameof(model.UserName), "Вы не подтвердили свой email");
+                    return View(model);
+                }
+            }
 
             if (user == null)
             {
@@ -122,7 +132,7 @@ namespace SocialNavigator.Controllers
                 ModelState.AddModelError(nameof(model.UserName), "Пользователь с таким именем уже существует");
                 return View(model);
             }
-            
+
 
             var user = new AppUser
             {
@@ -131,33 +141,56 @@ namespace SocialNavigator.Controllers
                 FullName = model.FullName,
                 UserCreatedAt = DateTime.UtcNow,
                 Active = true,
-                EmailConfirmed = true
             };
 
             var result = await userManager.CreateAsync(user, model.Password);
 
             if (result.Succeeded)
             {
-                logger.LogInformation("Пользователь {UserName} успешно создан", model.UserName);
+                logger.LogInformation("Пользователь {UserName} создан", model.UserName);
 
                 await userManager.AddToRoleAsync(user, "User");
 
-                await signInManager.SignInAsync(user, isPersistent: false);
+                var code = await userManager.GenerateEmailConfirmationTokenAsync(user);
+                var callbackUrl = Url.Action(
+                    "ConfirmEmail",
+                    "Account",
+                    new { userId = user.Id, code = code },
+                    protocol: HttpContext.Request.Scheme);
 
-                if (Url.IsLocalUrl(returnUrl))
-                {
-                    return Redirect(returnUrl);
-                }
+                await emailService.SendEmailAsync(model.Email, "Подтверждение регистрации", $"Для завершения регистрации перейдите по ссылке: <a href='{callbackUrl}'>, чтобы подтвердить email</a>");
 
-                return RedirectToAction(nameof(HomeController.Index), "Home");
+                ViewBag.Email = model.Email;
+                return View("RegisterConf"); 
             }
 
             foreach (var error in result.Errors)
             {
-                ModelState.AddModelError(string.Empty, error.Description);
+                ModelState.AddModelError(nameof(model.PasswordConfirm), error.Description);
             }
             return View(model);
         }
+
+        [HttpGet]
+        [AllowAnonymous]
+        public async Task<IActionResult> ConfirmEmail(string userId, string code)
+        {
+            if (userId == null || code == null)
+            {
+                return View("Error");
+            }
+            var user = await userManager.FindByIdAsync(userId);
+            if (user == null)
+            {
+                return View("Error");
+            }
+            var result = await userManager.ConfirmEmailAsync(user, code);
+            if (result.Succeeded)
+                return RedirectToAction("Login", "Account");
+            else
+                return View("Error");
+        }
+
         // валидация пароля
         private List<string> ValidatorPassword(string password)
         {

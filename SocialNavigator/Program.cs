@@ -1,6 +1,7 @@
 using Application.Common.Interfaces;
 using Application.Mapping;
 using Domain.Entity;
+using Infrastructure.Email;
 using Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -36,7 +37,8 @@ public class Program
             options.User.AllowedUserNameCharacters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._@+"; // символы в имени пользователя 
             options.User.RequireUniqueEmail = true; // уникальный email
 
-            options.SignIn.RequireConfirmedAccount = false; // подтверждение учетной записи
+            options.SignIn.RequireConfirmedAccount = true; // подтверждение учетной записи
+            options.SignIn.RequireConfirmedEmail = true; // подтверждение email
         })
             .AddRoles<IdentityRole<Guid>>()
             .AddRoleManager<RoleManager<IdentityRole<Guid>>>()
@@ -53,9 +55,9 @@ public class Program
             options.AccessDeniedPath = "/account/accessdenied";
             options.SlidingExpiration = true; // автоматическое продление срока действия куки
         });
+        builder.Services.AddTransient<IEmailService, EmailService>();
 
         builder.Services.AddAutoMapper(typeof(MappingProfile));
-
 
         #endregion
 

@@ -1,5 +1,4 @@
-﻿using Application.Common.Interfaces;
-using AutoMapper;
+﻿using AutoMapper;
 using Domain.DTO;
 using Domain.Entity;
 using Microsoft.AspNetCore.Authorization;
@@ -36,6 +35,7 @@ namespace SocialNavigator.Controllers
             var roles = await userManager.GetRolesAsync(user);
             profileDto.Role = roles.FirstOrDefault() ?? "User";
 
+            ViewBag.UserRoles = roles;
             return View("ProfileHome", profileDto);
         }
         #endregion
@@ -60,7 +60,23 @@ namespace SocialNavigator.Controllers
         [HttpGet]
         public async Task<IActionResult> MyReviews()
         {
-           return View();
+            return View();
+        }
+        #endregion
+
+        #region Moderator Панель модератора
+        [Authorize(Roles = "Moderator,Admin")]
+        public IActionResult Moderator()
+        {
+            return View();
+        }
+        #endregion
+
+        #region Admin Панель администратора
+        [Authorize(Roles = "Admin")]
+        public IActionResult Admin()
+        {
+            return View();
         }
         #endregion
     }

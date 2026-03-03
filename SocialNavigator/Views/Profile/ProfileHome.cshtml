@@ -12,8 +12,41 @@
                         <i class="fi fi-user-male fs-1"></i>
                     </div>
                     <h4 class="fw-bold mb-1">@(Model.FullName ?? Model.UserName)</h4>
-                    <span class="badge rounded-pill bg-info">@Model.Role</span>
+
+                    @if (Model.Role == "User")
+                    {
+                        <span class="badge rounded-pill bg-info">Пользователь</span>
+                    }
+                                                
+                    @if (Model.Role == "Moderator")
+                    {
+                        <span class="badge rounded-pill bg-warning">Модератор</span>
+                    }
+                                                
+                    @if (Model.Role == "Admin")
+                    {
+                         <span class="badge rounded-pill bg-danger ">Администратор</span>
+                    }
+
                     <div class="d-grid gap-2 mt-4">
+                        @if (User.IsInRole("Moderator") || User.IsInRole("Admin"))
+                        {
+                            <a asp-controller="Profile" asp-action="Moderator">
+                                <button type="submit"class="btn btn-outline-warning btn-pill scroll-to w-100">
+                                    Панель модератора
+                                </button>
+                            </a>
+                        }
+
+                        @if (User.IsInRole("Admin"))
+                        {
+                            <a asp-controller="Profile" asp-action="Admin">
+                                <button type="submit"class="btn btn-outline-danger btn-pill scroll-to w-100">
+                                    Панель администратора
+                                 </button>
+                            </a>
+                        }                    
+                                                                   
                         <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
                             @Html.AntiForgeryToken()
                             <button type="submit" class="btn btn-outline-secondary btn-pill scroll-to w-100">
@@ -37,8 +70,8 @@
                         @Html.AntiForgeryToken()
 
                         <div class="form-floating mb-3">
-                            @Html.TextBoxFor(m => m.UserCreatedAt, new { @class = "form-control", placeholder = "Дата регестрации", @readonly = "readonly", disabled = "disabled" })
-                            @Html.LabelFor(m => m.UserCreatedAt, "Дата регестрации")
+                            @Html.TextBoxFor(m => m.UserCreatedAt, new { @class = "form-control", placeholder = "Дата регистрации", @readonly = "readonly" })
+                            @Html.LabelFor(m => m.UserCreatedAt, "Дата регистрации")
                         </div>
 
                         <div class="form-floating mb-3">
@@ -48,7 +81,7 @@
                         </div>
 
                         <div class="form-floating mb-3">
-                            @Html.TextBoxFor(m => m.UserName, new { @class = "form-control", placeholder = "Логин", @readonly = "readonly", disabled = "disabled" })
+                            @Html.TextBoxFor(m => m.UserName, new { @class = "form-control", placeholder = "Логин", @readonly = "readonly"})
                             @Html.LabelFor(m => m.UserName, "Логин")
                             <small class="text-muted">Логин нельзя изменить</small>
                         </div>
