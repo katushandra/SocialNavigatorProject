@@ -28,7 +28,7 @@
                          <span class="badge rounded-pill bg-danger ">Администратор</span>
                     }
 
-                    <div class="d-grid gap-2 mt-4">
+                    <div class="d-grid gap-2 mt-4">                 
                         @if (User.IsInRole("Moderator") || User.IsInRole("Admin"))
                         {
                             <a asp-controller="Profile" asp-action="Moderator">
@@ -46,13 +46,19 @@
                                  </button>
                             </a>
                         }                    
-                                                                   
+                               
+                        <a asp-controller="Profile" asp-action="ChangePassword">
+                            <button type="submit" class="btn btn-outline-primary btn-pill scroll-to w-100">
+                                Сменить пароль
+                            </button>
+                        </a>
+
                         <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
                             @Html.AntiForgeryToken()
                             <button type="submit" class="btn btn-outline-secondary btn-pill scroll-to w-100">
                                 Выйти
                             </button>
-                        </form>
+                        </form>                        
                     </div>
                 </div>
             </div>
@@ -65,7 +71,7 @@
                         <i class="fi fi-user me-2"></i>Ваши данные
                     </h5>
                 </div>
-                <div class="card-body p-4">
+                <div class="card-body p-4">                                    
 
                     @if (TempData["SuccessMessage"] != null)
                     {
@@ -75,6 +81,13 @@
                         </div>
                     }
 
+                    @if (TempData["InfoMessage"] != null)
+                    {
+                        <div class="alert alert-info alert-dismissible fade show" role="alert">
+                            @TempData["InfoMessage"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    }
                     <form asp-controller="Profile" asp-action="UpdateProfile" method="post" class="needs-validation">
                         @Html.AntiForgeryToken()
 
@@ -109,40 +122,6 @@
                         <div class="text-center mt-4">
                             <button type="submit" class="btn btn-outline-primary btn-pill">
                                 <i class="fi fi-save me-2"></i>Сохранить изменения
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-
-            <div id="change-password" class="card shadow-sm border-0">
-                <div class="card-header bg-transparent border-0 pt-4 px-4">
-                    <h5 class="fw-bold mb-0">
-                        <i class="fi fi-lock me-2"></i>Смена пароля
-                    </h5>
-                </div>
-                <div class="card-body p-4">
-                    <form asp-controller="Profile" asp-action="ChangePassword" method="post" class="needs-validation">
-                        @Html.AntiForgeryToken()
-
-                        <div class="form-floating mb-3">
-                            <input type="password" class="form-control" id="currentPassword" name="CurrentPassword" placeholder="Текущий пароль" required>
-                            <label for="currentPassword">Текущий пароль</label>
-                        </div>
-
-                        <div class="form-floating mb-3">
-                            <input type="password" class="form-control" id="newPassword" name="NewPassword" placeholder="Новый пароль" required>
-                            <label for="newPassword">Новый пароль</label>
-                        </div>
-
-                        <div class="form-floating mb-4">
-                            <input type="password" class="form-control" id="confirmPassword" name="ConfirmPassword" placeholder="Подтвердите пароль" required>
-                            <label for="confirmPassword">Подтвердите пароль</label>
-                        </div>
-
-                        <div class="text-center">
-                            <button type="submit" class="btn btn-primary btn-pill">
-                                <i class="fi fi-save me-2"></i>Сменить пароль
                             </button>
                         </div>
                     </form>

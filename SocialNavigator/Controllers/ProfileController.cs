@@ -60,11 +60,13 @@ namespace SocialNavigator.Controllers
                 return View("ProfileHome", model);
             }
 
+            bool hasChange = false;
             bool emailChange = false;
 
             if (user.FullName != model.FullName)
             {
                 user.FullName = model.FullName;
+                hasChange = true;
             }
 
             if (user.Email != model.Email)
@@ -79,15 +81,25 @@ namespace SocialNavigator.Controllers
                 user.NormalizedEmail = model.Email.ToUpperInvariant();
                 user.EmailConfirmed = false;
                 emailChange = true;
+                hasChange = true;
             }
 
-            user.UserEditedAt = DateTime.UtcNow;
-            var result = await userManager.UpdateAsync(user);
+            if (!hasChange)
+            {
+                TempData["InfoMessage"] = "Нет изменений для сохранения";
+                return RedirectToAction("ProfileHome");
+            }
+            else
+            {
+                user.UserEditedAt = DateTime.UtcNow;
+            }
+
+           var result = await userManager.UpdateAsync(user);
 
             if (result.Succeeded)
             {
                 if (emailChange)
-                {
+                {                    
                     var code = await userManager.GenerateEmailConfirmationTokenAsync(user);
                     var callbackUrl = Url.Action(
                         "ConfirmEmail",
@@ -118,7 +130,99 @@ namespace SocialNavigator.Controllers
         #endregion
 
         #region ChangePassword Изменение пароля
+        [Authorize]
+        public IActionResult ChangePassword()
+        {
+            return View(new ChangePasswordDto());
+        }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ChangePassword(ChangePasswordDto model)
+        {
+            var user = await userManager.GetUserAsync(User);
+
+            if (!ModelState.IsValid)
+            {
+                return View(model);
+            }
+
+            var checkPassword = await userManager.CheckPasswordAsync(user, model.CurrentPassword);
+            if (!checkPassword)
+            {
+                ModelState.AddModelError(nameof(model.CurrentPassword), "Неверный текущий пароль");
+                return View(model);
+            }
+
+            if (model.CurrentPassword == model.NewPassword)
+            {
+                ModelState.AddModelError(nameof(model.NewPassword), "Новый пароль должен отличаться от текущего");
+                return View(model);
+            }
+
+            var newPasswordErrors = ValidatorPassword(model.NewPassword);
+            foreach (var error in newPasswordErrors)
+            {
+                ModelState.AddModelError(nameof(model.NewPassword), error);
+            }
+
+            var confirmPasswordErrors = ValidatorPassword(model.ConfirmPassword);
+            foreach (var error in confirmPasswordErrors)
+            {
+                ModelState.AddModelError(nameof(model.ConfirmPassword), error);
+            }
+
+            var result = await userManager.ChangePasswordAsync(user, model.CurrentPassword, model.NewPassword);
+
+            if (result.Succeeded)
+            {
+                user.UserEditedAt = DateTime.UtcNow;
+                await userManager.UpdateAsync(user);
+
+                TempData["SuccessMessage"] = "Пароль успешно изменен";
+                logger.LogInformation("Пользователь {UserName} успешно сменил пароль", user.UserName);
+                await signInManager.RefreshSignInAsync(user);
+                return RedirectToAction("ProfileHome");
+            }
+
+            foreach (var error in result.Errors)
+            {
+                ModelState.AddModelError(nameof(model.ConfirmPassword), error.Description);
+            }
+
+            return View(model);
+        }
+        // валидация пароля
+        private List<string> ValidatorPassword(string password)
+        {
+            var errors = new List<string>();
+
+            if (password.Length < 6)
+            {
+                errors.Add("Пароль должен быть не менее 6 символов");
+            }
+
+            if (!password.Any(char.IsDigit))
+            {
+                errors.Add("Пароль должен содержать хотя бы одну цифру");
+            }
+
+            if (!password.Any(char.IsLower))
+            {
+                errors.Add("Пароль должен содержать хотя бы одну строчную букву");
+            }
+
+            if (!password.Any(char.IsUpper))
+            {
+                errors.Add("Пароль должен содержать хотя бы одну заглавную букву");
+            }
+
+            if (!password.Any(c => !char.IsLetterOrDigit(c)))
+            {
+                errors.Add("Пароль должен содержать хотя бы один специальный символ");
+            }
+            return errors;
+        }
         #endregion
 
         #region MyObjects Мои объекты
