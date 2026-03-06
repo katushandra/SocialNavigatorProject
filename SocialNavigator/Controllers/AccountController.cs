@@ -119,6 +119,12 @@ namespace SocialNavigator.Controllers
                 ModelState.AddModelError(nameof(model.Password), error);
             }
 
+            var confirmPasswordErrors = ValidatorPassword(model.PasswordConfirm);
+            foreach (var error in confirmPasswordErrors)
+            {
+                ModelState.AddModelError(nameof(model.PasswordConfirm), error);
+            }
+
             var existingUserByEmail = await userManager.FindByEmailAsync(model.Email);
             if (existingUserByEmail != null)
             {
@@ -158,10 +164,17 @@ namespace SocialNavigator.Controllers
                     new { userId = user.Id, code = code },
                     protocol: HttpContext.Request.Scheme);
 
-                await emailService.SendEmailAsync(model.Email, "Подтверждение регистрации", $"Для завершения регистрации перейдите по ссылке: <a href='{callbackUrl}'>, чтобы подтвердить email</a>");
+                await emailService.SendEmailAsync(model.Email, "Подтверждение регистрации", $@"
+                Здравствуйте, {model.FullName}!
+                <br><br>
+                Вы успешно зарегистрировались на сайте Социальный навигатор!<br>
+                Для завершения регистрации перейдите по ссылке <a href='{callbackUrl}'> подтвердить email</a>
+                <br><br>
+                С уважением,<br>
+                Команда Социальный навигатор!");
 
                 ViewBag.Email = model.Email;
-                return View("RegisterConf"); 
+                return View("~/Views/Account/RegisterConf.cshtml");
             }
 
             foreach (var error in result.Errors)

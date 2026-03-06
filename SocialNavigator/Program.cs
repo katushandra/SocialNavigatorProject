@@ -24,6 +24,8 @@ public class Program
 
         builder.Services.AddScoped<ILocalDbContext, LocalDbContext>();
 
+        builder.Services.Configure<Infrastructure.Email.Smtp>(builder.Configuration.GetSection("Smtp"));
+
         builder.Services.AddIdentity<AppUser, IdentityRole<Guid>>(options =>
         {
             options.Password.RequireDigit = true; // хотя бы одна цифра

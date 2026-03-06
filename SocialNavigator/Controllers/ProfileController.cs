@@ -107,7 +107,13 @@ namespace SocialNavigator.Controllers
                         new { userId = user.Id, email = model.Email, code = code },
                         protocol: HttpContext.Request.Scheme);
 
-                    await emailService.SendEmailAsync(model.Email, "Подтверждение смены email", $"Для подтверждения нового email перейдите по ссылке: <a href='{callbackUrl}'>, чтобы подтвердить email</a>");
+                    await emailService.SendEmailAsync(model.Email, "Подтверждение смены email", $@"
+                    Здравствуйте, {model.FullName}!
+                    <br><br>
+                    Для подтверждения нового email перейдите по ссылке <a href='{callbackUrl}'> подтвердить email</a>
+                    <br><br>
+                    С уважением,<br>
+                    Команда Социальный навигатор!");
 
                     TempData["SuccessMessage"] = "На новый email отправлено письмо с подтверждением. Email будет изменен после подтверждения.";
                 }
