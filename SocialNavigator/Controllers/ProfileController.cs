@@ -108,7 +108,7 @@ namespace SocialNavigator.Controllers
                         protocol: HttpContext.Request.Scheme);
 
                     await emailService.SendEmailAsync(model.Email, "Подтверждение смены email", $@"
-                    Здравствуйте, {model.FullName}!
+                    Здравствуйте, {user.FullName ?? user.UserName}!
                     <br><br>
                     Для подтверждения нового email перейдите по ссылке <a href='{callbackUrl}'> подтвердить email</a>
                     <br><br>

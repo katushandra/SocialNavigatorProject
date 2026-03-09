@@ -165,7 +165,7 @@ namespace SocialNavigator.Controllers
                     protocol: HttpContext.Request.Scheme);
 
                 await emailService.SendEmailAsync(model.Email, "Подтверждение регистрации", $@"
-                Здравствуйте, {model.FullName}!
+                Здравствуйте, {user.FullName ?? user.UserName}!
                 <br><br>
                 Вы успешно зарегистрировались на сайте Социальный навигатор!<br>
                 Для завершения регистрации перейдите по ссылке <a href='{callbackUrl}'> подтвердить email</a>
@@ -248,6 +248,114 @@ namespace SocialNavigator.Controllers
         #region ForgotPassword Забыли пароль
         [HttpGet]
         public IActionResult ForgotPassword()
+        {
+            return View();
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ForgotPassword(ForgotPasswordDto model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return View(model);
+            }
+
+            var user = await userManager.FindByEmailAsync(model.Email);
+            if (user == null)
+            {
+                logger.LogInformation("Попытка сбросить пароль. Пользователь с email {Email} не найден", model.Email);
+
+                return View("ForgotPasswordConf");
+            }
+
+            if (!await userManager.IsEmailConfirmedAsync(user))
+            {
+                logger.LogInformation("Попытка сбросить пароль. {Email} не подтвержден, инструкция не отправлена", model.Email);
+
+                return View("ForgotPasswordConf");
+            }
+
+            var code = await userManager.GeneratePasswordResetTokenAsync(user);
+            var callbackUrl = Url.Action(
+                "ResetPassword",
+                "Account",
+                new { code, email = user.Email },
+                protocol: HttpContext.Request.Scheme);
+
+            await emailService.SendEmailAsync(model.Email, "Сброс пароля", $@"
+            Здравствуйте, {user.FullName ?? user.UserName}!
+            <br><br>
+            Для сброса пароля перейдите по ссылке <a href='{callbackUrl}'> cбросить пароль</a>
+            <br><br>
+            Если вы не запрашивали сброс пароля, просто проигнорируйте это письмо.
+            <br><br>
+            С уважением,<br>
+            Команда Социальный навигатор!");
+
+            logger.LogInformation("Отправлена инструкция по сбросу пароля на email {Email}", model.Email);
+
+            return View("ForgotPasswordConf");
+        }
+        #endregion
+
+        #region ResetPassword Сброс пароля
+        [HttpGet]
+        public IActionResult ResetPassword(string code = null, string email = null)
+        {
+            if (code == null || email == null)
+            {
+                logger.LogInformation("Токен или email осутствуют");
+
+                return View("Error");
+            }
+
+            var model = new ResetPasswordDto { Code = code, Email = email };
+            return View(model);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ResetPassword(ResetPasswordDto model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return View(model);
+            }
+
+            var user = await userManager.FindByEmailAsync(model.Email);
+            if (user == null)
+            {
+                return RedirectToAction("ResetPasswordConf");
+            }
+
+            var passwordErrors = ValidatorPassword(model.Password);
+            foreach (var error in passwordErrors)
+            {
+                ModelState.AddModelError(nameof(model.Password), error);
+            }
+
+            var result = await userManager.ResetPasswordAsync(user, model.Code, model.Password);
+            if (result.Succeeded)
+            {
+                user.UserEditedAt = DateTime.UtcNow;
+                await userManager.UpdateAsync(user);
+
+                logger.LogInformation("Пользователь {UserName} успешно сбросил пароль", user.UserName);
+
+                return RedirectToAction("ResetPasswordConf");
+            }
+
+            foreach (var error in result.Errors)
+            {
+                ModelState.AddModelError(nameof(model.Password), error.Description);
+            }
+
+            return View(model);
+        }
+
+        [HttpGet]
+        public IActionResult ResetPasswordConf()
         {
             return View();
         }
