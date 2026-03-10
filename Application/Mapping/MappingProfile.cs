@@ -55,6 +55,12 @@ namespace Application.Mapping
 
             #region SocialObjectDto
             CreateMap<SocialObject, SocialObjectDto>();
+            CreateMap<SocialObject, AddSocialObjectDto>();
+            #endregion
+
+            #region MyObjectDto
+            CreateMap<SocialObject, MyObjectDto>()
+                .ForMember(x => x.Status, opt => opt.MapFrom(src => src.Status));
             #endregion
         }
     }

@@ -1,10 +1,13 @@
 ﻿using Application.Common.Interfaces;
 using AutoMapper;
+using AutoMapper.QueryableExtensions;
 using Domain.DTO;
 using Domain.Entity;
+using Domain.Entity.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace SocialNavigator.Controllers
 {
@@ -16,14 +19,16 @@ namespace SocialNavigator.Controllers
         private readonly UserManager<AppUser> userManager;
         private readonly SignInManager<AppUser> signInManager;
         private readonly IEmailService emailService;
+        private readonly ILocalDbContext context;
 
-        public ProfileController(IMapper mapper, ILogger<AccountController> logger, UserManager<AppUser> userManager, SignInManager<AppUser> signInManager, IEmailService emailService)
+        public ProfileController(IMapper mapper, ILogger<AccountController> logger, UserManager<AppUser> userManager, SignInManager<AppUser> signInManager, IEmailService emailService, ILocalDbContext context)
         {
             this.mapper = mapper;
             this.logger = logger;
             this.userManager = userManager;
             this.signInManager = signInManager;
             this.emailService = emailService;
+            this.context = context;
         }
 
         #region Profile Профиль
@@ -94,12 +99,12 @@ namespace SocialNavigator.Controllers
                 user.UserEditedAt = DateTime.UtcNow;
             }
 
-           var result = await userManager.UpdateAsync(user);
+            var result = await userManager.UpdateAsync(user);
 
             if (result.Succeeded)
             {
                 if (emailChange)
-                {                    
+                {
                     var code = await userManager.GenerateEmailConfirmationTokenAsync(user);
                     var callbackUrl = Url.Action(
                         "ConfirmEmail",
@@ -233,9 +238,49 @@ namespace SocialNavigator.Controllers
 
         #region MyObjects Мои объекты
         [HttpGet]
-        public async Task<IActionResult> MyObjects()
+        public async Task<IActionResult> MyObjects(CancellationToken cancellationToken, string status)
         {
-            return View();
+            var user = await userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return RedirectToAction("Login", "Account");
+            }
+
+            var query = context.SocialObject
+                .Include(x => x.ObjectType)
+                .Where(x => x.CreatorId == user.Id);
+
+            var statusCounts = await query
+               .GroupBy(x => x.Status)
+               .Select(g => new { Status = g.Key, Count = g.Count() })
+               .ToDictionaryAsync(x => x.Status.ToString(), x => x.Count, cancellationToken);
+
+            if (string.IsNullOrEmpty(status))
+            {
+                status = "all";
+            }
+
+            if (status != "all")
+            {              
+                bool isValid = Enum.GetNames(typeof(Status))
+                                  .Any(name => string.Equals(name, status, StringComparison.OrdinalIgnoreCase));
+
+                if (isValid)
+                {
+                    var statusEnum = (Status)Enum.Parse(typeof(Status), status, true);
+                    query = query.Where(x => x.Status == statusEnum);
+                }
+            }
+
+            var userObjects = await query
+                .OrderByDescending(x => x.CreatedAt)
+                .ProjectTo<MyObjectDto>(mapper.ConfigurationProvider)
+                .ToListAsync(cancellationToken);
+
+            ViewBag.CurrentStatus = status;
+            ViewBag.StatusCounts = statusCounts;
+            ViewBag.TotalCount = userObjects.Count;
+            return View(userObjects);
         }
         #endregion
 
