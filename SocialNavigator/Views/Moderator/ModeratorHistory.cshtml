@@ -1,0 +1,104 @@
+﻿@model IEnumerable<Domain.DTO.ModerationHistoryDto>
+@{
+    ViewData["Title"] = "История модерации";
+}
+
+<!-- Блок: обложка -->
+<div class="section jarallax" style="background-image:url('/frontend/assets/images/background.png')">
+    <div class="container py-5">
+        <div class="row">
+            <div class="col-lg-8 mx-auto text-center">
+                <h1 class="display-4 fw-bold mb-4">История модерации</h1>
+                <p class="lead mb-0">Последние ваши действия</p>
+                <div class="clearfix mt-4">
+                    <a asp-action="ModeratorPanel" class="btn btn-outline-light btn-pill mx-2" style="border-color: var(--bs-primary); color: var(--bs-primary)">
+                        <i class="fi fi-arrow-left"></i> Вернуться к модерации
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Блок: история -->
+<div class="section bg-light">
+    <div class="container">
+        <div class="row">
+            <div class="col-12">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body p-4">
+
+                        @if (Model != null && Model.Any())
+                        {
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Дата</th>
+                                            <th>Объект</th>
+                                            <th>Статус</th>
+                                            <th>Комментарий</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var item in Model)
+                                        {
+                                            <tr>
+                                                <td class="text-nowrap">@item.ModeratedAt.ToString("dd.MM.yyyy HH:mm")</td>
+                                                <td>
+                                                    <strong>@item.ObjectName</strong>
+                                                </td>
+                                                <td>
+                                                    @if (item.NewStatus == "Approved")
+                                                    {
+                                                        <span class="badge bg-success">Одобрен</span>
+                                                    }
+                                                    else if (item.NewStatus == "Rejected")
+                                                    {
+                                                        <span class="badge bg-danger">Отклонен</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="badge bg-secondary">@item.NewStatus</span>
+                                                    }
+                                                </td>
+                                                <td>
+                                                    @if (!string.IsNullOrEmpty(item.Comment))
+                                                    {
+                                                        @if (item.Comment.Length > 100)
+                                                        {
+                                                            <span title="@item.Comment">@item.Comment.Substring(0, 100)...</span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span>@item.Comment</span>
+                                                        }
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="text-muted">—</span>
+                                                    }
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="text-muted small mt-3">
+                                Всего записей: @ViewBag.TotalCount
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="text-center py-5">
+                                <i class="fi fi-clock fs-1 text-muted mb-3"></i>
+                                <h5>История модерации пуста</h5>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

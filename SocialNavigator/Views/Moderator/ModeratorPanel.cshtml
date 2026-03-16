@@ -1,7 +1,7 @@
 ﻿@using Domain.Entity.Enums
-@model IEnumerable<Domain.DTO.MyObjectDto>
+@model IEnumerable<Domain.DTO.ModerationSocialObjectDto>
 @{
-    ViewData["Title"] = "Мои объекты";
+    ViewData["Title"] = "Панель модератора";
     var statusCounts = ViewBag.StatusCounts as Dictionary<string, int>;
     var totalCount = statusCounts?.Sum(x => x.Value) ?? 0;
 }
@@ -11,8 +11,8 @@
     <div class="container py-5">
         <div class="row">
             <div class="col-lg-8 mx-auto text-center">
-                <h1 class="display-4 fw-bold mb-4">Мои объекты</h1>
-                <p class="lead mb-0">Объекты, добавленные вами на карту</p>
+                <h1 class="display-4 fw-bold mb-4">Панель модератора</h1>
+                <p class="lead mb-0">Управление объектами на карте</p>
             </div>
         </div>
     </div>
@@ -41,43 +41,71 @@
         @if (TempData["InfoMessage"] != null)
         {
             <div class="alert alert-info alert-dismissible fade show" role="alert">
-                 @TempData["InfoMessage"]
+                @TempData["InfoMessage"]
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
         }
 
+        <!-- Количесто объектов, ожидающих модерции -->
+        @if (ViewBag.PendingCount > 0)
+        {
+            <div class="alert alert-info alert-dismissible fade show mb-4" role="alert">
+                <strong>Ожидает модерации: @ViewBag.PendingCount</strong>
+                @if (ViewBag.PendingCount == 1)
+                {
+                    <span>объект</span>
+                }
+                else if (ViewBag.PendingCount >= 2 && ViewBag.PendingCount <= 4)
+                {
+                    <span>объекта</span>
+                }
+                else
+                {
+                    <span>объектов</span>
+                }
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
         <!-- Навигация по статусам -->
         <div class="d-flex justify-content-between align-items-center mb-4">
             <ul class="nav nav-lg nav-invert">
                 <li class="nav-item">
                     <a class="nav-link @(ViewBag.CurrentStatus == null || ViewBag.CurrentStatus == "all" ? "active" : "")"
-                       asp-action="MyObjects" asp-route-status="all">
-                        Все <span class="badge bg-secondary ms-2">@totalCount</span>
+                       asp-action="ModeratorPanel" asp-route-status="all">
+                       Все <span class="badge bg-secondary ms-2">@totalCount</span>
                     </a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link @(ViewBag.CurrentStatus == "Pending" ? "active" : "")"
-                       asp-action="MyObjects" asp-route-status="Pending">
-                        На модерации <span class="badge bg-warning ms-2">@(statusCounts != null && statusCounts.ContainsKey("Pending") ? statusCounts["Pending"] : 0)</span>
+                       asp-action="ModeratorPanel" asp-route-status="Pending">
+                       На модерации <span class="badge bg-warning ms-2">@(statusCounts != null && statusCounts.ContainsKey("Pending") ? statusCounts["Pending"] : 0)</span>
                     </a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link @(ViewBag.CurrentStatus == "Approved" ? "active" : "")"
-                       asp-action="MyObjects" asp-route-status="Approved">
-                        Одобренные <span class="badge bg-success ms-2">@(statusCounts != null && statusCounts.ContainsKey("Approved") ? statusCounts["Approved"] : 0)</span>
+                       asp-action="ModeratorPanel" asp-route-status="Approved">
+                       Одобренные <span class="badge bg-success ms-2">@(statusCounts != null && statusCounts.ContainsKey("Approved") ? statusCounts["Approved"] : 0)</span>
                     </a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link @(ViewBag.CurrentStatus == "Rejected" ? "active" : "")"
-                       asp-action="MyObjects" asp-route-status="Rejected">
-                        Отклоненные <span class="badge bg-danger ms-2">@(statusCounts != null && statusCounts.ContainsKey("Rejected") ? statusCounts["Rejected"] : 0)</span>
+                       asp-action="ModeratorPanel" asp-route-status="Rejected">
+                       Отклоненные <span class="badge bg-danger ms-2">@(statusCounts != null && statusCounts.ContainsKey("Rejected") ? statusCounts["Rejected"] : 0)</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link @(ViewBag.CurrentStatus == "Archived" ? "active" : "")"
+                       asp-action="ModeratorPanel" asp-route-status="Archived">
+                        В архиве <span class="badge bg-light text-dark ms-2">@(statusCounts != null && statusCounts.ContainsKey("Archived") ? statusCounts["Archived"] : 0)</span>
                     </a>
                 </li>
             </ul>
 
-            <a asp-controller="Object" asp-action="Add" class="btn btn-primary btn-pill">
-                <i class="fi fi-plus me-2"></i>Добавить объект
-            </a>
+            <div class="d-flex gap-2">
+                <a asp-action="ModeratorHistory" class="btn btn-info btn-pill">
+                    История действий
+                </a>
+            </div>
         </div>
 
         <!-- Список объектов -->
@@ -96,7 +124,6 @@
                                         <span class="badge rounded-pill bg-primary text-white px-5 mb-2">
                                             @obj?.ObjectType?.NameObjectType
                                         </span>
-
                                         <div class="d-flex flex-wrap gap-2 mb-3">
                                             @if (obj.Status == Status.Pending)
                                             {
@@ -115,72 +142,18 @@
                                                 <span class="badge rounded-pill bg-light text-dark">В архиве</span>
                                             }
                                         </div>
-                                        <i class="fi fi-pin-2"></i> @obj.Address<br>
-                                        <i class="fi fi-calendar"></i> Создан: @obj.CreatedAt.ToString("dd.MM.yyyy")<br>
+                                        <i class="fi fi-pin-2 me-1"></i> @obj.Address<br>
+                                        <i class="fi fi-calendar me-1"></i> Создан: @obj.CreatedAt.ToString("dd.MM.yyyy")<br>
+                                        <i class="fi fi-user-male me-1"></i> Автор: @obj.CreatorName
                                     </p>
                                 </div>
 
                                 <div class="d-flex gap-2 ms-4 align-items-center">
-                                    @if (obj.Status == Status.Approved)
-                                    {
-                                        <a asp-controller="Object" asp-action="Full" asp-route-id="@obj.IdObject" class="btn btn-sm btn-outline-primary btn-pill">
-                                            Посмотреть
-                                        </a>
-                                    }
-
-                                    @if (obj.Status == Status.Rejected)
-                                    {
-                                        <a asp-controller="Object" asp-action="Edit" asp-route-id="@obj.IdObject"
-                                           class="btn btn-sm btn-outline-warning btn-pill">
-                                            <i class="fi fi-pencil me-1"></i>Редактировать
-                                        </a>
-                                    }
-
-                                    @if (obj.Status == Status.Pending)
-                                    {
-                                        <button type="button" class="btn btn-sm btn-outline-danger btn-pill"
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#deleteModal-@obj.IdObject">
-                                            <i class="fi fi-thrash me-1"></i> Удалить
-                                        </button>
-                                    }                                    
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Модальное окно для удаления -->
-                        <div class="modal fade" id="deleteModal-@obj.IdObject" data-bs-keyboard="false" tabindex="-1" aria-labelledby="deleteModalLabel-@obj.IdObject" aria-hidden="true">
-                            <div class="modal-dialog modal-dialog-centered">
-                                <div class="modal-content">
-                                    <div class="modal-header">
-                                        <h5 class="modal-title" id="deleteModalLabel-@obj.IdObject">
-                                            Удаление объекта
-                                        </h5>
-                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                    </div>
-                                    <div class="modal-body">
-                                        <div class="text-center py-3">
-                                            <i class="fi fi-thrash fs-1 text-danger"></i>
-                                            <p class="mb-0">Вы действительно хотите удалить объект</p>
-                                            <p class="fw-bold">"@obj.Name"</p>
-                                            <div class="alert alert-danger alert-dismissible fade show mt-3" role="alert"> 
-                                                После удаления восстановить объект не получится.
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="modal-footer d-flex justify-content-between">
-                                        <button type="button" class="btn btn-outline-secondary btn-pill" data-bs-dismiss="modal">
-                                            Отмена
-                                        </button>
-                                        <form asp-controller="Object" asp-action="Delete" method="post" style="display: inline;">
-                                            @Html.AntiForgeryToken()
-                                            <input type="hidden" name="id" value="@obj.IdObject" />
-                                            <button type="submit" class="btn btn-danger btn-pill">
-                                                Удалить
-                                            </button>
-                                        </form>
-                                    </div>
-                                </div>
+                                    <a asp-action="ModeratorFull" asp-route-id="@obj.IdObject" class="btn btn-sm btn-outline-primary btn-pill">
+                                        Подробнее
+                                    </a>
+                                </div>                                  
+                               
                             </div>
                         </div>
                     }
@@ -192,11 +165,11 @@
                         <div class="col-12 mx-auto">
                             <div class="card border-0 shadow-sm text-center py-5">
                                 <div class="card-body">
-                                    <h3 class="fw-bold mb-3">
+                                    <h3 class="fw-bold mb-0">
                                         @if (ViewBag.CurrentStatus != null && ViewBag.CurrentStatus != "all")
                                         {
                                             <span>
-                                                Нет объектов со статусом 
+                                                Нет объектов со статусом
                                                 @switch (ViewBag.CurrentStatus)
                                                 {
                                                     case "Pending":
@@ -216,19 +189,13 @@
                                         }
                                         else
                                         {
-                                            <span>У вас пока нет объектов</span>
+                                            <span>Нет объектов для отображения</span>
                                         }
-                                    </h3>
-                                    <p class="text-muted mb-4">
-                                        Добавьте новый объект на карту
-                                    </p>
-                                    <a asp-controller="Object" asp-action="Add" class="btn btn-primary btn-pill">
-                                        <i class="fi fi-plus me-2"></i>Добавить объект
-                                    </a>
+                                    </h3>                                   
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </div>                    
                 }
             </div>
         </div>

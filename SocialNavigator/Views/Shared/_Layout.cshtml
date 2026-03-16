@@ -1,10 +1,21 @@
 ﻿@using Microsoft.AspNetCore.Identity
 @using Domain.Entity
+@using Domain.Entity.Enums
+@using Application.Common.Interfaces
+@using Microsoft.EntityFrameworkCore
 @inject SignInManager<AppUser> SignInManager
 @inject UserManager<AppUser> UserManager
+@inject ILocalDbContext Context
 @{
     var user = await UserManager.GetUserAsync(User);
     var userFullName = user?.FullName ?? user?.UserName;
+
+    int pendingCount = 0;
+    if (user != null && (User.IsInRole("Moderator") || User.IsInRole("Admin")))
+    {
+        pendingCount = await Context.SocialObject
+            .CountAsync(x => x.Status == Status.Pending);
+    }
 }
 
 <!doctype html>
@@ -141,6 +152,17 @@
                                 <a asp-controller="Profile" asp-action="MyReviews" class="dropdown-item text-truncate fw-light">
                                     Mои отзывы
                                 </a>
+                                @if (User.IsInRole("Moderator") || User.IsInRole("Admin"))
+                                {
+                                    <div class="dropdown-divider"></div>
+                                    <a asp-controller="Moderator" asp-action="ModeratorPanel" class="dropdown-item text-truncate fw-light ">
+                                        Панель модератора
+                                        @if (pendingCount > 0)
+                                        {
+                                            <span class="badge bg-warning ms-2">@pendingCount</span>
+                                        }
+                                    </a>
+                                }
                                 <div class="dropdown-divider mb-0"></div>
                                 <a asp-controller="Account" asp-action="Logout" class="prefix-icon-ignore dropdown-footer dropdown-custom-ignore">
                                     <i class="fi fi-power float-start"></i>

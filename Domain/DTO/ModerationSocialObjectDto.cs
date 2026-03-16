@@ -1,5 +1,4 @@
 ﻿using Domain.Entity.Enums;
-using NetTopologySuite.Geometries;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Domain.DTO
 {
-    public class SocialObjectDto
+    public class ModerationSocialObjectDto
     {
         /// <summary>
         /// идентификатор объекта
@@ -31,6 +30,31 @@ namespace Domain.DTO
         public ObjectTypeDto ObjectType { get; set; }
 
         /// <summary>
+        /// Статус объекта 
+        /// </summary>
+        public Status Status { get; set; }
+
+        /// <summary>
+        /// Дата создания
+        /// </summary>
+        public DateTime CreatedAt { get; set; }
+
+        /// <summary>
+        /// Автор объекта
+        /// </summary>
+        public string CreatorName { get; set; } = null!;
+
+        /// <summary>
+        /// Email автора
+        /// </summary>
+        public string CreatorEmail { get; set; } = null!;
+
+        /// <summary>
+        /// Количество отзывов
+        /// </summary>
+        public int ReviewsCount { get; set; }
+
+        /// <summary>
         /// для людей, передвигающихся на креслах-колясках
         /// </summary>
         public bool Wheelchairs { get; set; }
@@ -43,37 +67,26 @@ namespace Domain.DTO
         /// <summary>
         /// для людей с нарушениями слуха
         /// </summary>
-        public bool DeafAccess { get; set; } 
+        public bool DeafAccess { get; set; }
 
         /// <summary>
         /// для людей с нарушениями речи
         /// </summary>
-        public bool SpeechAccess { get; set; } 
+        public bool SpeechAccess { get; set; }
 
         /// <summary>
         /// для людей с нарушениями опорно-двигательного аппарата
         /// </summary>
-        public bool MobilityAccess { get; set; } 
+        public bool MobilityAccess { get; set; }
 
         /// <summary>
         /// для людей с умственными нарушениями
         /// </summary>
-        public bool IntellectualAccess { get; set; } 
+        public bool IntellectualAccess { get; set; }
 
         /// <summary>
         /// для людей с нарушениями поведения и общения 
         /// </summary>
         public bool AutismAccess { get; set; }
-
-        /// <summary>
-        /// статус объекта
-        /// </summary>
-        public Status Status { get; set; }
-
-        /// <summary>
-        /// общая оценка объекта
-        /// </summary>
-        public decimal ScoreObject { get; set; } = 0.0m;
-
     }
 }

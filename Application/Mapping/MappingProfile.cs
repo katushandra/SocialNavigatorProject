@@ -62,6 +62,21 @@ namespace Application.Mapping
             CreateMap<SocialObject, MyObjectDto>()
                 .ForMember(x => x.Status, opt => opt.MapFrom(src => src.Status));
             #endregion
+
+            #region  ModerationSocialObjectDto
+            CreateMap<SocialObject, ModerationSocialObjectDto>()
+                .ForMember(x => x.ObjectType, opt => opt.MapFrom(src => src.ObjectType))
+                .ForMember(x => x.Status, opt => opt.MapFrom(src => src.Status)) 
+                .ForMember(x => x.CreatorName, opt => opt.MapFrom(src => src.Creator != null ? (src.Creator.FullName ?? src.Creator.UserName) : " "))
+                .ForMember(x => x.CreatorEmail, opt => opt.MapFrom(src => src.Creator.Email))
+                .ForMember(x => x.ReviewsCount, opt => opt.MapFrom(src => src.Reviews.Count));
+            #endregion
+
+            #region  ModerationHistoryDto
+            CreateMap<ModerationHistory, ModerationHistoryDto>()
+                .ForMember(x => x.ObjectName, opt => opt.MapFrom(src => src.Object.Name))
+                .ForMember(x => x.ModeratorName, opt => opt.MapFrom(src => src.Moderator != null ? (src.Moderator.FullName ?? src.Moderator.UserName) : " "));
+            #endregion
         }
     }
 }

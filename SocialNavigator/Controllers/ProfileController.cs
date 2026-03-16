@@ -45,6 +45,13 @@ namespace SocialNavigator.Controllers
             var roles = await userManager.GetRolesAsync(user);
             profileDto.Role = roles.FirstOrDefault() ?? "User";
 
+            if (roles.Contains("Moderator") || roles.Contains("Admin"))
+            {
+                var pendingCount = await context.SocialObject
+                    .CountAsync(x => x.Status == Status.Pending);
+                ViewBag.PendingCount = pendingCount;
+            }
+
             ViewBag.UserRoles = roles;
             return View("ProfileHome", profileDto);
         }
@@ -291,21 +298,6 @@ namespace SocialNavigator.Controllers
             return View();
         }
         #endregion
-
-        #region Moderator Панель модератора
-        [Authorize(Roles = "Moderator,Admin")]
-        public IActionResult Moderator()
-        {
-            return View();
-        }
-        #endregion
-
-        #region Admin Панель администратора
-        [Authorize(Roles = "Admin")]
-        public IActionResult Admin()
-        {
-            return View();
-        }
-        #endregion
+        
     }
 }

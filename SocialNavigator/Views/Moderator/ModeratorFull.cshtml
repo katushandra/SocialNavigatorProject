@@ -1,0 +1,211 @@
+﻿@using Domain.Entity.Enums
+@model Domain.DTO.FullSocialObjectDto
+@{
+    ViewData["Title"] = "Модерация объекта";
+    var obj = Model.SocialObjectDto;
+}
+
+<!-- Блок: обложка -->
+<div class="section jarallax" style="background-image:url('/frontend/assets/images/background.png')">
+    <div class="container py-5">
+        <div class="row">
+            <div class="col-lg-8 mx-auto text-center">
+                <!-- Название объекта -->
+                <h1 class="display-4 fw-bold mb-4">@obj?.Name</h1>
+
+                <!-- Статус объекта -->
+                <div class="mb-3">
+                    @if (obj?.Status == Status.Pending)
+                    {
+                        <span class="badge bg-warning text-white px-4 py-2 rounded-pill">
+                            На модерации
+                        </span>
+                    }
+                    else if (obj?.Status == Status.Approved)
+                    {
+                        <span class="badge bg-success text-white px-4 py-2 rounded-pill">
+                            Одобрен
+                        </span>
+                    }
+                    else if (obj?.Status == Status.Rejected)
+                    {
+                        <span class="badge bg-danger text-white px-4 py-2 rounded-pill">
+                            <i class="fi fi-close me-2"></i>Отклонен
+                        </span>
+                    }
+                </div>
+
+                <!-- Тип объекта -->
+                <div class="mb-3">
+                    <span class="badge bg-primary text-white px-4 py-2 rounded-pill">
+                        <i class="fi fi-arrow-end me-2"></i>@obj?.ObjectType?.NameObjectType
+                    </span>
+                </div>
+
+                <!-- Адрес -->
+                <p class="lead text-white-80 mb-0">
+                    <i class="fi fi-pin-2 me-2"></i>@obj?.Address
+                </p>
+
+                <!-- Кнопка назад -->
+                <div class="clearfix mt-5">
+                    <a asp-action="ModeratorPanel" asp-route-status="Pending" class="btn btn-outline-light btn-pill mx-2" style="border-color: var(--bs-primary); color: var(--bs-primary)">
+                        <i class="fi fi-arrow-left"></i> Вернуться к списку
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Блок: вся информация -->
+<div class="section bg-light py-5">
+    <div class="container">
+        <div class="row g-4">
+            <!-- Левая колонка -->
+            <div class="col-lg-8">
+                <!-- Блок с описанием -->
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-body p-4">
+                        <h2 class="h4 fw-bold mb-3">
+                            <i class="fi fi-squared-info text-primary me-2"></i>Описание
+                        </h2>
+                        <p class="mb-0">@(!string.IsNullOrEmpty(Model.Description) ? Model.Description : "Описание отсутствует")</p>                        
+                    </div>
+                </div>
+
+                <!-- Блок доступности -->
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-body p-4">
+                        <h2 class="h4 fw-bold mb-3">
+                            <i class="fi fi-check text-primary me-2"></i>Доступность
+                        </h2>
+                        <div class="d-flex flex-wrap gap-2">
+                            @if (obj != null)
+                            {
+                                @if (obj.Wheelchairs)
+                                {
+                                    <span class="badge rounded-pill bg-success">На креслах-колясках</span>
+                                }
+                                @if (obj.BlindAccess)
+                                {
+                                    <span class="badge rounded-pill bg-light text-dark">С нарушениями зрения</span>
+                                }
+                                @if (obj.DeafAccess)
+                                {
+                                    <span class="badge rounded-pill bg-warning">С нарушениями слуха</span>
+                                }
+                                @if (obj.SpeechAccess)
+                                {
+                                    <span class="badge rounded-pill bg-primary-soft">С нарушениями речи</span>
+                                }
+                                @if (obj.MobilityAccess)
+                                {
+                                    <span class="badge rounded-pill bg-secondary">С нарушениями ОДА</span>
+                                }
+                                @if (obj.IntellectualAccess)
+                                {
+                                    <span class="badge rounded-pill bg-danger">С умственными нарушениями</span>
+                                }
+                                @if (obj.AutismAccess)
+                                {
+                                    <span class="badge rounded-pill bg-info">С нарушениями поведения и общения</span>
+                                }
+
+                                @if (!obj.Wheelchairs && !obj.BlindAccess && !obj.DeafAccess && !obj.SpeechAccess &&
+                                                            !obj.MobilityAccess && !obj.IntellectualAccess && !obj.AutismAccess)
+                                {
+                                    <p class="mb-0"> Объект не имеет критериев доступности</p>
+                                }
+                            }
+                        </div>
+                    </div>
+                </div>                    
+            </div>
+
+            <!-- Правая колонка -->
+            <div class="col-lg-4">
+                
+                <!-- Для объектов на модерации кнопки  -->
+                @if (obj?.Status == Status.Pending)
+                {
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body p-4">
+
+                            <form asp-action="Approve" method="post" class="mb-3">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@obj?.IdObject" />
+                                <button type="submit" class="btn btn-success btn-pill w-100">
+                                    <i class="fi fi-check me-2"></i>Одобрить
+                                </button>
+                            </form>
+
+                            <button type="button" class="btn btn-danger btn-pill w-100" data-bs-toggle="modal" data-bs-target="#rejectModal">
+                                <i class="fi fi-close me-2"></i>Отклонить
+                            </button>
+                        </div>
+                    </div>
+                }
+
+                @if (obj?.Status != Status.Pending)
+                {
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body p-4">
+                            <div class="alert alert-success mb-0">
+                                Этот объект уже обработан.
+                            </div>
+                            @if (obj?.Status == Status.Approved)
+                            {
+                                <a asp-controller="Object" asp-action="Full" asp-route-id="@obj.IdObject" class="btn btn-primary btn-pill w-100  mt-3">
+                                    Перейти к карточке объекта
+                                </a>
+                            }
+                        </div>
+                    </div>                   
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно для отклонения -->
+<div class="modal fade" id="rejectModal" data-bs-keyboard="false" tabindex="-1" aria-labelledby="rejectModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="rejectModalLabel">
+                    Отклонение объекта
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form asp-action="Reject" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@obj?.IdObject" />
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="rejectionReason" class="form-label fw-bold">
+                            Причина отклонения <span class="text-danger">*</span>
+                        </label>
+                        <textarea class="form-control"
+                                  id="rejectionReason"
+                                  name="rejectionReason"
+                                  rows="5"
+                                  placeholder="Опишите причину отклонения, чтобы автор мог исправить ошибки..."
+                                  required></textarea>
+                        <div class="form-text text-muted mt-2">
+                            <i class="fi fi-info-circle"></i> Причина будет отправлена автору.
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer d-flex justify-content-between">
+                    <button type="button" class="btn btn-outline-secondary btn-pill" data-bs-dismiss="modal">
+                        Отмена
+                    </button>
+                    <button type="submit" class="btn btn-danger btn-pill">
+                        Отклонить
+                    </button>                       
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
