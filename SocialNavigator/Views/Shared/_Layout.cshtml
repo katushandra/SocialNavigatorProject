@@ -163,6 +163,13 @@
                                         }
                                     </a>
                                 }
+                                @if (User.IsInRole("Admin"))
+                                {
+                                    <div class="dropdown-divider"></div>
+                                    <a asp-controller="Admin" asp-action="AdminPanel" class="dropdown-item text-truncate fw-light">
+                                        Панель администратора
+                                    </a>
+                                }
                                 <div class="dropdown-divider mb-0"></div>
                                 <a asp-controller="Account" asp-action="Logout" class="prefix-icon-ignore dropdown-footer dropdown-custom-ignore">
                                     <i class="fi fi-power float-start"></i>

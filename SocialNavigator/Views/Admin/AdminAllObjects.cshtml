@@ -1,0 +1,210 @@
+﻿@model IEnumerable<Domain.DTO.ModerationSocialObjectDto>
+@using Domain.Entity.Enums
+@{
+    ViewData["Title"] = "Управление объектами";
+    var statusCounts = ViewBag.StatusCounts as Dictionary<string, int>;
+    var totalCount = statusCounts?.Sum(x => x.Value) ?? 0;
+}
+
+<!-- Блок: обложка -->
+<div class="section jarallax" style="background-image:url('/frontend/assets/images/background.png')">
+    <div class="container py-5">
+        <div class="row">
+            <div class="col-lg-8 mx-auto text-center">
+                <h1 class="display-4 fw-bold mb-4">Управление объектами</h1>
+                <p class="lead mb-0">Просмотр и управление всеми объектами системы</p>
+
+                <div class="clearfix mt-5">
+                    <a asp-action="AdminPanel" class="btn btn-outline-light btn-pill mx-2" style="border-color: var(--bs-primary); color: var(--bs-primary)">
+                        <i class="fi fi-arrow-left"></i> Назад
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Блок: список объектов -->
+<div class="section bg-light py-4">
+    <div class="container">
+       
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                @TempData["SuccessMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                @TempData["ErrorMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+
+        <!-- Фильтры и поиск -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body p-4">
+                <form method="get" class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Поиск по названию или адресу</label>
+                        <input type="text" name="searchTerm" value="@ViewBag.SearchTerm" class="form-control" placeholder="Название или адрес...">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Статус</label>
+                        <select name="status" class="form-select">
+                            <option value="all" selected="@(ViewBag.StatusFilter == "all")">Все статусы</option>
+                            <option value="Pending" selected="@(ViewBag.StatusFilter == "Pending")">На модерации</option>
+                            <option value="Approved" selected="@(ViewBag.StatusFilter == "Approved")">Одобрен</option>
+                            <option value="Rejected" selected="@(ViewBag.StatusFilter == "Rejected")">Отклонен</option>
+                            <option value="Archived" selected="@(ViewBag.StatusFilter == "Archived")">Заархивирован</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Тип объекта</label>
+                        <select name="type" class="form-select">
+                            <option value="">Все типы</option>
+                            @if (ViewBag.ObjectTypes != null)
+                            {
+                                @foreach (var type in ViewBag.ObjectTypes)
+                                {
+                                    <option value="@type" selected="@(ViewBag.TypeFilter == type)">@type</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary btn-pill scroll-to mx-2 px-5 ms-3">
+                            Найти
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Список объектов -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+                @if (Model.Any())
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Название</th>
+                                    <th>Тип</th>
+                                    <th>Автор</th>
+                                    <th>Статус</th>
+                                    <th>Дата создания</th>
+                                    <th>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var obj in Model)
+                                {
+                                    <tr>
+                                        <td>
+                                            <strong>@obj.Name</strong>
+                                            <br><small class="text-muted">@obj.Address</small>
+                                        </td>
+                                        <td>@obj.ObjectType?.NameObjectType</td>
+                                        <td>@obj.CreatorName</td>
+                                        <td>
+                                            @if (obj.Status == Status.Pending)
+                                            {
+                                                <span class="badge bg-warning">На модерации</span>
+                                            }
+                                            else if (obj.Status == Status.Approved)
+                                            {
+                                                <span class="badge bg-success">Одобрен</span>
+                                            }
+                                            else if (obj.Status == Status.Rejected)
+                                            {
+                                                <span class="badge bg-danger">Отклонен</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-secondary">@obj.Status</span>
+                                            }
+                                        </td>
+                                        <td>@obj.CreatedAt.ToString("dd.MM.yyyy")</td>
+                                        <td>
+                                            <div class="d-flex gap-2">
+                                                <a asp-controller="Moderator" asp-action="ModeratorFull" asp-route-id="@obj.IdObject"
+                                                   class="btn btn-sm btn-outline-primary btn-pill" title="Подробнее">
+                                                    <i class="fi fi-eye me-1"></i>
+                                                </a>
+
+                                                <button type="button" class="btn btn-sm btn-outline-danger btn-pill" title="Удалить"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#deleteModal-@obj.IdObject">
+                                                    <i class="fi fi-thrash me-1"></i> 
+                                                </button>
+
+                                                <!-- Модальное окно для удаления -->
+                                                <div class="modal fade" id="deleteModal-@obj.IdObject" data-bs-keyboard="false"
+                                                     tabindex="-1" aria-labelledby="deleteModalLabel-@obj.IdObject" aria-hidden="true">
+                                                    <div class="modal-dialog modal-dialog-centered">
+                                                        <div class="modal-content">
+                                                            <div class="modal-header">
+                                                                <h5 class="modal-title" id="deleteModalLabel-@obj.IdObject">
+                                                                    Удаление объекта
+                                                                </h5>
+                                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                            </div>
+                                                            <div class="modal-body">
+                                                                <div class="text-center py-3">
+                                                                    <i class="fi fi-thrash fs-1 text-danger mb-3"></i>
+                                                                    <p class="mb-2">Вы действительно хотите удалить объект</p>
+                                                                    <p class="fw-bold fs-5 mb-3">"@obj.Name"</p>
+                                                                    <div class="alert alert-danger mb-0" role="alert">
+                                                                        <i class="fi fi-alert-circle me-2"></i>
+                                                                        После удаления восстановить объект не получится.
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div class="modal-footer d-flex justify-content-between">
+                                                                <button type="button" class="btn btn-outline-secondary btn-pill" data-bs-dismiss="modal">
+                                                                    Отмена
+                                                                </button>
+                                                                <form asp-action="DeleteObject" method="post" style="display: inline;">
+                                                                    @Html.AntiForgeryToken()
+                                                                    <input type="hidden" name="id" value="@obj.IdObject" />
+                                                                    <button type="submit" class="btn btn-danger btn-pill">
+                                                                        Удалить
+                                                                    </button>
+                                                                </form>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="row">
+                        <div class="col-12 mx-auto">
+                            <div class="text-center py-5">
+                                <div class="card-body">
+                                    <h3 class="fw-bold mb-3">
+                                        Объекты не найдены
+                                    </h3>
+                                    <p class="text-muted mb-4">Попробуйте изменить параметры поиска</p>
+                                </div>                  
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+

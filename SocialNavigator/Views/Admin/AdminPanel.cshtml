@@ -1,0 +1,210 @@
+﻿@model Domain.DTO.Admin.AdminPanelDto
+@{
+    ViewData["Title"] = "Панель администратора";
+}
+
+<!-- Блок: обложка -->
+<div class="section jarallax" style="background-image:url('/frontend/assets/images/background.png')">
+    <div class="container py-5">
+        <div class="row">
+            <div class="col-lg-8 mx-auto text-center">
+                <h1 class="display-4 fw-bold mb-4">Панель администратора</h1>
+                <p class="lead mb-0">Аналитика и управление системой</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Блок: аналитика -->
+<div class="section bg-light py-5">
+    <div class="container">
+
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                @TempData["SuccessMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                @TempData["ErrorMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+
+        <!-- Карточки с основной статистикой -->
+        <div class="row g-4 mb-5">
+            <div class="col-xl-3 col-md-6">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body d-flex align-items-center">
+                        <div class="text-primary me-3 d-flex align-items-center justify-content-center">
+                            <i class="fi fi-map fs-3"></i>
+                        </div>
+                        <div>
+                            <h3 class="fw-bold mb-0">@Model.TotalObjects</h3>
+                            <h6 class="text-muted mb-0">Всего объектов</h6>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body d-flex align-items-center">
+                        <div class="text-success me-3 d-flex align-items-center justify-content-center">
+                            <i class="fi fi-check fs-3"></i>
+                        </div>
+                        <div>
+                            <h3 class="fw-bold mb-0">@Model.TotalApprovedObjects</h3>
+                            <h6 class="text-muted mb-0">Одобрено</h6>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body d-flex align-items-center">
+                        <div class="text-info me-3 d-flex align-items-center justify-content-center">
+                            <i class="fi fi-users fs-3"></i>
+                        </div>
+                        <div>
+                            <h3 class="fw-bold mb-0">@Model.TotalUsers</h3>
+                            <h6 class="text-muted mb-0">Пользователи</h6>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body d-flex align-items-center">
+                        <div class="text-warning me-3 d-flex align-items-center justify-content-center">
+                            <i class="fi fi-star-empty fs-3"></i>
+                        </div>
+                        <div>
+                            <h3 class="fw-bold mb-0">@Model.AverageRating.ToString("F1")</h3>
+                            <h6 class="text-muted mb-0">Средний рейтинг</h6>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Быстрые действия -->
+        <div class="row g-4 mb-5">
+            <div class="col-12">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body p-4">
+                        <div class="row g-3">
+                            <div class="col">
+                                <a asp-controller="Admin" asp-action="AdminAllObjects">
+                                    <button type="submit" class="btn btn-primary btn-pill scroll-to w-100">
+                                        Управление объектами
+                                    </button>
+                                </a>
+                            </div>
+                            
+                            <div class="col">
+                                <a asp-controller="Admin" asp-action="AdminModerationHistory">
+                                   <button type="submit" class="btn btn-success btn-pill scroll-to w-100">
+                                        История модерации
+                                    </button>
+                                </a>
+                            </div>
+                            <div class="col">
+                                <a asp-controller="Admin" asp-action="AdminUsers">
+                                    <button type="submit" class="btn btn-info btn-pill scroll-to w-100">
+                                        Управление пользователями
+                                    </button>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Распределение по типам объектов -->
+        <div class="row g-4">            
+            <div class="col-lg-6">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-transparent border-0 pt-4 px-4">
+                        <h5 class="fw-bold mb-0">
+                            <i class="fi fi-bars-2 me-2 text-primary"></i>Объекты по типам
+                        </h5>
+                    </div>
+                    <div class="card-body p-4">
+                        @if (Model.ObjectsByType.Any())
+                        {
+                            int totalApproved = Model.TotalApprovedObjects;
+                            @foreach (var type in Model.ObjectsByType)
+                            {
+                                double percentage = totalApproved > 0 ? (double)type.Count / totalApproved * 100 : 0;
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <span>@type.TypeName</span>
+                                        <span class="fw-bold">@type.Count (@percentage.ToString("F1")%)</span>
+                                    </div>
+                                    <div class="progress" style="height: 8px;">
+                                        <div class="progress-bar bg-primary"
+                                             role="progressbar"
+                                             style="width: @percentage%;"
+                                             aria-valuenow="@percentage"
+                                             aria-valuemin="0"
+                                             aria-valuemax="100">
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <p class="text-muted text-center py-4">Нет данных</p>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Топ активных пользователей -->
+            <div class="col-lg-6">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-transparent border-0 pt-4 px-4">
+                        <h5 class="fw-bold mb-0">
+                            <i class="fi fi-mdeal me-2 text-primary"></i>Топ активных пользователей
+                        </h5>
+                    </div>
+                    <div class="card-body p-4">
+                        @if (Model.TopActiveUsers.Any())
+                        {
+                            int index = 1;
+                            @foreach (var user in Model.TopActiveUsers)
+                            {
+                                <div class="d-flex align-items-center mb-3">
+                                    <div class="rounded-circle bg-primary-soft d-flex align-items-center justify-content-center me-3"
+                                         style="width: 40px; height: 40px; font-weight: bold;">
+                                        @index
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <h6 class="fw-bold mb-1">@(user.FullName ?? user.UserName)</h6>
+                                        <small class="text-muted">
+                                            @user.ObjectsCount объектов  @user.ReviewsCount отзывов
+                                        </small>
+                                    </div>
+                                </div>
+                                index++;
+                            }
+                        }
+                        else
+                        {
+                            <p class="text-muted text-center py-4">Нет данных об активности</p>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>       
+    </div>
+</div>

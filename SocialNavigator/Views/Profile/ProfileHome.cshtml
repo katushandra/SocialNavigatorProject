@@ -31,7 +31,7 @@
                     <div class="d-grid gap-2 mt-4">                 
                         @if (User.IsInRole("Moderator") || User.IsInRole("Admin"))
                         {
-                            <a asp-controller="Profile" asp-action="Moderator">
+                            <a asp-controller="Moderator" asp-action="ModeratorPanel">
                                 <button type="submit"class="btn btn-outline-warning btn-pill scroll-to w-100">
                                     Панель модератора
                                 </button>
@@ -40,7 +40,7 @@
 
                         @if (User.IsInRole("Admin"))
                         {
-                            <a asp-controller="Profile" asp-action="Admin">
+                            <a asp-controller="Admin" asp-action="AdminPanel">
                                 <button type="submit"class="btn btn-outline-danger btn-pill scroll-to w-100">
                                     Панель администратора
                                  </button>
