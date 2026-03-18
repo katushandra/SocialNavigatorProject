@@ -253,6 +253,7 @@ namespace SocialNavigator.Controllers
             var editDto = mapper.Map<AddSocialObjectDto>(socialObject);
             var objectTypes = await context.ObjectType
                 .OrderBy(x => x.Name)
+                .Select(x => new { x.IdObjectType, x.Name })
                 .ToListAsync();
 
             ViewBag.ObjectTypes = objectTypes;

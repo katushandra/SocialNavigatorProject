@@ -1,14 +1,670 @@
 ﻿@model Domain.DTO.AddSocialObjectDto
 @{
     ViewData["Title"] = "Редактирование объекта";
+    <!-- FIX: Получаем ID объекта из ViewBag, который передается из контроллера -->
+    var objectId = ViewBag.ObjectId;
 }
-<div class="section jarallax" style="background-image:url('/frontend/assets/images/background.png')">
-    <div class="container py-5">
-        <div class="row">
-            <div class="col-lg-8 mx-auto text-center">
 
-                <h1 class="display-4 fw-bold mb-4">Здесь будет редактирование объекта</h1>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+    /* Стили для подсказок адреса */
+    .address-suggestions {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: white;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        max-height: 300px;
+        overflow-y: auto;
+        z-index: 1050;
+        display: none;
+        margin-top: 4px;
+    }
+
+    .address-suggestion-item {
+        padding: 12px 16px;
+        cursor: pointer;
+        border-bottom: 1px solid #f0f0f0;
+        transition: background-color 0.2s;
+        font-size: 14px;
+    }
+
+        .address-suggestion-item:last-child {
+            border-bottom: none;
+        }
+
+        .address-suggestion-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .address-suggestion-item small {
+            display: block;
+            color: #6c757d;
+            font-size: 12px;
+            margin-top: 4px;
+        }
+</style>
+<div class="container py-5">
+    <!-- Заголовок -->
+    <div class="row mb-5">
+        <div class="col-lg-8 mx-auto text-center">
+            <h1 class="display-5 fw-bold mb-4">Редактирование объекта</h1>
+            <p class="lead mb-0">Внесите необходимые изменения и отправьте на повторную проверку.</p>
+        </div>
+    </div>
+
+    <!-- Форма -->
+    <div class="row">
+        <div class="col-lg-10 mx-auto">
+            <div class="card shadow-lg border-0">
+                <div class="card-body p-4">
+
+                    <form asp-controller="Object" asp-action="Edit" asp-route-id="@objectId" id="editObjectForm" method="post">
+                        @Html.AntiForgeryToken()
+
+                        <!-- Основная информация -->
+                        <div class="step-content">
+                            <h4 class="fw-bold mb-4">Основная информация</h4>
+
+                            <div class="mb-4">
+                                <label asp-for="Name" class="form-label fw-bold">
+                                    Название объекта <span class="text-danger">*</span>
+                                </label>
+                                <div class="form-floating">
+                                    <input asp-for="Name"
+                                           class="form-control"
+                                           id="objectName"
+                                           placeholder="Введите название объекта"
+                                           maxlength="200"
+                                           data-counter="nameCounter" />
+                                    <label asp-for="Name">Название объекта</label>
+                                </div>
+                                <div class="d-flex justify-content-between mt-1">
+                                    <span asp-validation-for="Name" class="text-danger small"></span>
+                                    <span class="small text-muted"><span id="nameCounter">0</span>/200</span>
+                                </div>
+                            </div>
+
+                            <div class="mb-4">
+                                <label asp-for="Description" class="form-label fw-bold">Описание</label>
+                                <div class="form-floating">
+                                    <textarea asp-for="Description"
+                                              class="form-control"
+                                              id="objectDescription"
+                                              placeholder="Опишите объект"
+                                              style="height: 120px;"
+                                              maxlength="2000"
+                                              data-counter="descCounter"></textarea>
+                                    <label asp-for="Description">Описание объекта</label>
+                                </div>
+                                <div class="d-flex justify-content-between mt-1">
+                                    <span asp-validation-for="Description" class="text-danger small"></span>
+                                    <span class="small text-muted"><span id="descCounter">0</span>/2000</span>
+                                </div>
+                            </div>
+
+                            <div class="mb-4">
+                                <label asp-for="Address" class="form-label fw-bold">
+                                    Адрес <span class="text-danger">*</span>
+                                </label>
+                                <div class="small text-muted mb-2">
+                                    <span>В формате: город, улица, дом. Например: Санкт-Петербург, Невский проспект, 28</span>
+                                </div>
+                                <div class="position-relative">
+                                    <div class="input-group">
+                                        <div class="form-floating flex-grow-1">
+                                            <input asp-for="Address"
+                                                   class="form-control"
+                                                   id="objectAddress"
+                                                   placeholder="Например: Санкт-Петербург, Невский проспект, 28"
+                                                   maxlength="255"
+                                                   data-counter="addressCounter"
+                                                   autocomplete="off" />
+                                            <label asp-for="Address">Адрес</label>
+                                        </div>
+                                        <button class="btn btn-outline-primary" type="button" id="checkAddressBtn">
+                                            <i class="fi fi-search"></i> Найти на карте
+                                        </button>
+                                    </div>
+                                    <div id="addressSuggestions" class="address-suggestions"></div>
+                                </div>
+                                <div class="d-flex justify-content-between mt-1">
+                                    <span asp-validation-for="Address" class="text-danger small"></span>
+                                    <span class="small text-muted"><span id="addressCounter">0</span>/255</span>
+                                </div>
+                                <div id="addressStatus" class="mt-2 small"></div>
+                            </div>
+
+                            <div class="mb-4">
+                                <label class="form-label fw-bold">Местоположение на карте</label>
+                                <div id="map" style="height: 400px; width: 100%; border-radius: 8px;"></div>
+                                <input type="hidden" id="Latitude" name="Latitude" />
+                                <input type="hidden" id="Longitude" name="Longitude" />
+                                <div class="form-text mt-2">
+                                    Вы можете кликнуть карте, чтобы уточнить местоположение.
+                                </div>
+                            </div>
+
+                            <div class="mb-4">
+                                <label asp-for="RouteDescription" class="form-label fw-bold">Схема проезда</label>
+                                <div class="form-floating">
+                                    <textarea asp-for="RouteDescription"
+                                              class="form-control"
+                                              id="routeDescription"
+                                              placeholder="Опишите схему проезда"
+                                              style="height: 100px;"
+                                              maxlength="2000"
+                                              data-counter="routeCounter"></textarea>
+                                    <label asp-for="RouteDescription">Схема проезда</label>
+                                </div>
+                                <div class="d-flex justify-content-between mt-1">
+                                    <span asp-validation-for="RouteDescription" class="text-danger small"></span>
+                                    <span class="small text-muted"><span id="routeCounter">0</span>/2000</span>
+                                </div>
+                            </div>
+
+                            <div class="mb-4">
+                                <label for="objectType" class="form-label fw-bold">
+                                    Тип объекта <span class="text-danger">*</span>
+                                </label>
+                                <select asp-for="ObjectTypeId" class="form-select form-select-lg" id="objectType" required>
+                                    <option value="">Выберите тип объекта</option>
+                                    @if (ViewBag.ObjectTypes != null)
+                                    {
+                                        foreach (var type in ViewBag.ObjectTypes)
+                                        {
+                                            <option value="@type.IdObjectType">@type.Name</option>
+                                        }
+                                    }
+                                </select>
+                                <span asp-validation-for="ObjectTypeId" class="text-danger small"></span>
+                            </div>
+                        </div>
+
+                        <!-- Доступность  -->
+                        <div class="mb-5">
+                            <h4 class="fw-bold mb-4">Критерии доступности</h4>
+                            <p class="text-muted mb-4">Отметьте, для каких категорий маломобильности доступен объект</p>
+
+                            <div class="mb-3">
+                                <div class="form-check mb-3">
+                                    <input asp-for="Wheelchairs" class="form-check-input" />
+                                    <label asp-for="Wheelchairs" class="form-check-label">
+                                        Для людей, передвигающихся на креслах-колясках
+                                    </label>
+                                </div>
+
+                                <div class="form-check mb-3">
+                                    <input asp-for="BlindAccess" class="form-check-input" />
+                                    <label asp-for="BlindAccess" class="form-check-label">
+                                        Для людей с нарушениями зрения
+                                    </label>
+                                </div>
+
+                                <div class="form-check mb-3">
+                                    <input asp-for="DeafAccess" class="form-check-input" />
+                                    <label asp-for="DeafAccess" class="form-check-label">
+                                        Для людей с нарушениями слуха
+                                    </label>
+                                </div>
+
+                                <div class="form-check mb-3">
+                                    <input asp-for="SpeechAccess" class="form-check-input" />
+                                    <label asp-for="SpeechAccess" class="form-check-label">
+                                        Для людей с нарушениями речи
+                                    </label>
+                                </div>
+
+                                <div class="form-check mb-3">
+                                    <input asp-for="MobilityAccess" class="form-check-input" />
+                                    <label asp-for="MobilityAccess" class="form-check-label">
+                                        Для людей с нарушениями опорно-двигательного аппарата
+                                    </label>
+                                </div>
+
+                                <div class="form-check mb-3">
+                                    <input asp-for="IntellectualAccess" class="form-check-input" />
+                                    <label asp-for="IntellectualAccess" class="form-check-label">
+                                        Для людей с умственными нарушениями
+                                    </label>
+                                </div>
+
+                                <div class="form-check mb-3">
+                                    <input asp-for="AutismAccess" class="form-check-input" />
+                                    <label asp-for="AutismAccess" class="form-check-label">
+                                        Для людей с нарушениями поведения и общения
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Кнопки -->
+                        <div class="d-flex justify-content-between mt-5">
+                            <button type="button" id="btnCancel" class="btn btn-outline-secondary btn-pill  px-5" onclick="window.location.href='@Url.Action("MyObjects", "Profile")'">
+                                Отмена
+                            </button>
+                            <div>
+                                <button type="submit" id="btnSubmit" class="btn btn-primary btn-pill px-5 ms-2">
+                                    Сохранить изменения
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Модальное окно для ошибок валидации -->
+                        <div class="modal fade" id="validationErrorModal" data-bs-keyboard="false" tabindex="-1" aria-labelledby="validationErrorModalLabel" aria-hidden="true">
+                            <div class="modal-dialog modal-dialog-centered">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="validationErrorModalLabel">
+                                            Ошибка валидации
+                                        </h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <div class="text-center py-3">
+                                            <i class="fi fi-exclamation-triangle fs-1 text-warning"></i>
+                                            <p class="mb-0" id="validationErrorMessage">Заполните все поля, отмеченные <span class="text-danger">*</span></p>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer d-flex justify-content-center">
+                                        <button type="button" class="btn btn-primary btn-pill px-5" data-bs-dismiss="modal">
+                                            Хорошо
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        let map, marker;
+        let searchTimeout;
+
+        @{
+            var hasCoordinates = ViewBag.Latitude != null && ViewBag.Longitude != null;
+
+            string lat = "59.9343";
+            string lng = "30.3351";
+            int zoom = 12;
+
+            if (hasCoordinates)
+            {
+                  try
+                  {
+                       lat = Convert.ToDouble(ViewBag.Latitude).ToString(System.Globalization.CultureInfo.InvariantCulture);
+                       lng = Convert.ToDouble(ViewBag.Longitude).ToString(System.Globalization.CultureInfo.InvariantCulture);
+                       zoom = 17;                                                      
+                  }
+                  catch
+                  {
+                       hasCoordinates = false;
+                  }
+             }                    
+        }
+
+        // Инициализация при загрузке страницы
+        document.addEventListener('DOMContentLoaded', function()
+        {
+            initMap(parseFloat(@lat), parseFloat(@lng), @zoom);
+            initCharacterCounters();
+            initAddressSearch();
+            @if (hasCoordinates)
+            {
+                  <text>
+                  setTimeout(function()
+                  {
+                      const latlng = L.latLng(parseFloat(@lat), parseFloat(@lng));
+                      updateMarker(latlng);
+                   }, 500);
+                   </text>                       
+            }
+        });
+
+        // Инициализация карты
+        function initMap(centerLat, centerLng, zoomLevel) 
+        {
+            map = L.map('map').setView([centerLat, centerLng], zoomLevel);
+
+            L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            }).addTo(map);
+
+            map.on('click', function(e) {
+                 updateMarker(e.latlng);
+                 getAddressFromCoords(e.latlng.lat, e.latlng.lng);
+            });
+        }
+
+        // Обновление маркера на карте
+        function updateMarker(latlng)
+        {
+            if (marker) 
+            {
+                marker.setLatLng(latlng);
+            } 
+            else 
+            {
+                marker = L.marker(latlng, {
+                    draggable: true 
+                }).addTo(map);
+
+                marker.on('dragend', function(e) {
+                    const newLatLng = e.target.getLatLng();
+                    getAddressFromCoords(newLatLng.lat, newLatLng.lng);
+                });
+            }
+
+            document.getElementById('Latitude').value = latlng.lat;
+            document.getElementById('Longitude').value = latlng.lng;
+
+            map.setView(latlng, 17);
+        }
+
+        // Получение адреса по координатам карты
+        async function getAddressFromCoords(lat, lng) 
+        {
+            try 
+            {
+                showAddressStatus('Определение адреса по карте...', 'info');
+
+                const response = await fetch('@Url.Action("CheckCordinate", "Object")', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                    },
+                    body: JSON.stringify({
+                        latitude: lat,
+                        longitude: lng
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success && data.address) 
+                {
+                    document.getElementById('objectAddress').value = data.address;
+                    updateCharacterCounter('objectAddress', 'addressCounter');
+                    showAddressStatus('Адрес определен по карте', 'success');
+                } 
+                else 
+                {
+                    showAddressStatus(data.message, 'warning');
+                }
+            } 
+            catch (error) 
+            {
+                console.error('Ошибка получения адреса по карте:', error);
+                showAddressStatus('Ошибка при определении адреса по карте', 'danger');
+            }
+        }
+
+        // Инициализация счетчиков символов
+        function initCharacterCounters() 
+        {
+            const inputs = document.querySelectorAll('[data-counter]'); // все поля с атрибутом data-counter
+            inputs.forEach(input => {
+                const counterId = input.getAttribute('data-counter'); // id счетчика
+                updateCharacterCounter(input.id, counterId); // обновление значения
+
+                // обработчик ввода для каждого поля
+                input.addEventListener('input', function() {
+                    updateCharacterCounter(this.id, counterId);
+                });
+            });
+        }
+
+        // Обновление конкретного счетчика
+        function updateCharacterCounter(inputId, counterId)
+        {
+            const input = document.getElementById(inputId);
+            const counter = document.getElementById(counterId);
+            if (input && counter)
+            {
+                counter.textContent = input.value.length;
+            }
+        }
+        // Форматирование адреса
+        function formatAddress(address)
+        {
+            if (!address) return null;
+
+            const parts = [];
+
+            // Город/населенный пункт
+            if (address.city) parts.push(address.city);
+            else if (address.town) parts.push(address.town);
+            else if (address.village) parts.push(address.village);
+            else if (address.hamlet) parts.push(address.hamlet);
+
+            // Улица
+            if (address.road) parts.push(address.road);
+            else if (address.pedestrian) parts.push(address.pedestrian);
+            else if (address.street) parts.push(address.street);
+
+            // Номер дома
+            if (address.house_number) parts.push(address.house_number);
+            else if (address.house_name) parts.push(address.house_name);
+
+            return parts.length > 0 ? parts.join(', ') : null;
+        }
+
+        // Инициализация поиска адреса
+        function initAddressSearch() {
+            const addressInput = document.getElementById('objectAddress');
+            const suggestionsDiv = document.getElementById('addressSuggestions');
+
+            // обработчик ввода адреса
+            addressInput.addEventListener('input', function()
+            {
+                clearTimeout(searchTimeout); // отмена предыдущий таймер
+                const query = this.value.trim();
+
+                // поиск при <3 символов не осуществляется
+                if (query.length < 3)
+                {
+                    suggestionsDiv.style.display = 'none';
+                    return;
+                }
+                // задержка 5 с перед поиском
+                searchTimeout = setTimeout(() => searchAddress(query), 500);
+            });
+
+            // закрытие подсказок при клике вне поля подсказок
+            document.addEventListener('click', function(e)
+            {
+                if (!addressInput.contains(e.target) && !suggestionsDiv.contains(e.target))
+                {
+                    suggestionsDiv.style.display = 'none';
+                }
+            });
+
+            // обработчик кнопки проверки адреса
+            document.getElementById('checkAddressBtn').addEventListener('click', checkAddress);
+        }
+
+        // Поиск адреса
+        async function searchAddress(query)
+        {
+            try
+            {
+                const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&addressdetails=1&limit=5&layer=address`);
+                const results = await response.json();
+
+                const suggestionsDiv = document.getElementById('addressSuggestions');
+                suggestionsDiv.innerHTML = ''; // очистка старых подсказок
+
+                if (results && results.length > 0)
+                {
+                    results.forEach(result =>
+                    {
+                        const address = formatAddress(result.address);
+                        if (address)
+                        {
+                            const div = document.createElement('div'); // элемент подсказки в формате
+                            div.className = 'address-suggestion-item';
+                            div.innerHTML = `
+                                <div>${address}</div>
+                                <small>${result.display_name.split(',').slice(0, 3).join(',')}</small>
+                            `;
+                            div.addEventListener('click', () => selectAddress(result, address)); // при клике - адрес
+                            suggestionsDiv.appendChild(div);
+                        }
+                    });
+                    suggestionsDiv.style.display = 'block'; // показ подсказок
+                }
+                else
+                {
+                    suggestionsDiv.style.display = 'none';
+                }
+            }
+            catch (error)
+            {
+                console.error('Ошибка поиска адреса:', error);
+            }
+        }
+
+        // Выбор адреса из подсказок
+        function selectAddress(result, formattedAddress)
+        {
+            document.getElementById('objectAddress').value = formattedAddress; // вставка адрес
+            updateCharacterCounter('objectAddress', 'addressCounter'); // обновление счетчик
+
+            const lat = parseFloat(result.lat); // широта
+            const lng = parseFloat(result.lon); // долгота
+
+            updateMarker([lat, lng]); // маркет
+            map.setView([lat, lng], 17); // центр и зум 17
+
+            document.getElementById('addressSuggestions').style.display = 'none'; // скрытие подсказок
+            showAddressStatus('Адрес выбран', 'success');
+        }
+
+        // Проверка адреса CheckAddress
+        async function checkAddress()
+        {
+            const address = document.getElementById('objectAddress').value;
+            if (!address) {
+                showAddressStatus('Скрипт Введите адрес', 'danger');
+                return;
+            }
+
+            showAddressStatus('Скрипт Поиск адреса...', 'info');
+
+            try
+            {
+                // запрос к методу CheckAddress
+                const response = await fetch('@Url.Action("CheckAddress", "Object")', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json', // тип отправляемых данных
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value // токен CSRF
+                    },
+                    body: JSON.stringify({ address: address }) // адрес в JSON
+                });
+
+                const data = await response.json();
+
+                if (data.success)
+                {
+                    showAddressStatus(data.message, 'success');
+                    updateMarker([data.latitude, data.longitude]);
+                    map.setView([data.latitude, data.longitude], 17);
+                }
+                else
+                {
+                    showAddressStatus(data.message, 'danger');
+                }
+            }
+            catch (error)
+            {
+                showAddressStatus('Ошибка при проверке адреса', 'danger');
+                console.error(error);
+            }
+        }
+
+        // Отображение статуса адреса
+        function showAddressStatus(message, type) {
+            const statusDiv = document.getElementById('addressStatus');
+            statusDiv.innerHTML = `<span class="text-${type}">${message}</span>`;
+        }
+
+        // Валидации
+        function validate()
+        {
+            const name = document.getElementById('objectName').value;
+            const address = document.getElementById('objectAddress').value;
+            const type = document.getElementById('objectType').value;
+
+
+            if (!name && !address && !type)
+            {
+                showValidationError('Заполните все поля, отмеченные *');
+                return false;
+            }
+
+            else if (!name)
+            {
+                showValidationError('Введите название объекта');
+                return false;
+            }
+
+            else if (!address)
+            {
+                showValidationError('Введите адрес объекта');
+                return false;
+            }
+
+            else if (!type)
+            {
+                showValidationError('Выберите тип объекта');
+                return false;
+            }
+
+            return true;
+        }
+
+        // Показ модального окна с ошибкой
+        function showValidationError(message) {
+            const modalElement = document.getElementById('validationErrorModal');
+            const messageElement = document.getElementById('validationErrorMessage');
+            messageElement.textContent = message;
+
+            const modal = new bootstrap.Modal(modalElement);
+            modal.show();
+        }
+
+        // Обновление счетчика адреса при вводе
+        document.getElementById('objectAddress').addEventListener('input', function() {
+            updateCharacterCounter('objectAddress', 'addressCounter');
+        });
+
+        // Обновление счетчика описания при вводе
+        document.getElementById('objectDescription').addEventListener('input', function() {
+            updateCharacterCounter('objectDescription', 'descCounter');
+        });
+
+        // Обновление счетчика схемы проезда при вводе
+        document.getElementById('routeDescription').addEventListener('input', function() {
+            updateCharacterCounter('routeDescription', 'routeCounter');
+        });
+
+        // FIX: Добавлена валидация перед отправкой формы
+        document.getElementById('editObjectForm').addEventListener('submit', function(event) {
+            if (!validate()) {
+                event.preventDefault();
+            }
+        });
+    </script>
+}

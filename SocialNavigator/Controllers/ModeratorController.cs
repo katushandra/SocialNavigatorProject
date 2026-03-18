@@ -139,6 +139,7 @@ namespace SocialNavigator.Controllers
                 ModeratorId = user.Id,
                 OldStatus = oldStatus,
                 NewStatus = Status.Approved,
+                Comment = "Объект одобрен",
                 ModeratedAt = DateTime.UtcNow
             };
 
