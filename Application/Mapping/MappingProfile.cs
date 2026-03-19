@@ -53,6 +53,10 @@ namespace Application.Mapping
                 .ForMember(x => x.AppUser, opt => opt.MapFrom(src => src.User));
             #endregion
 
+            #region AddReviewDto
+            CreateMap<AddReviewDto, Review>();
+            #endregion
+
             #region SocialObjectDto
             CreateMap<SocialObject, SocialObjectDto>();
             CreateMap<SocialObject, AddSocialObjectDto>();

@@ -94,21 +94,24 @@
                                     <div>
                                         <span class="text-warning">
                                             @{
-                                                var score = obj.ScoreObject;
-                                                for (int i = 0; i < 5; i++)
+                                                decimal score = obj?.ScoreObject ?? 0;
+                                                int fullStar = (int)Math.Floor(score);
+                                                bool halfStar = (score - fullStar) >= 0.5m;
+
+                                                for (int i = 0; i < fullStar; i++)
                                                 {
-                                                    if (i < Math.Floor(score))
-                                                    {
-                                                        <i class="fi fi-star-filled"></i>
-                                                    }
-                                                    else if (i < score)
-                                                    {
-                                                        <i class="fi fi-star-half"></i>
-                                                    }
-                                                    else
-                                                    {
-                                                        <i class="fi fi-star"></i>
-                                                    }
+                                                    <i class="fi fi-star-full"></i>
+                                                }
+
+                                                if (halfStar)
+                                                {
+                                                    <i class="fi fi-start-half"></i>
+                                                }
+
+                                                int emptyStar = 5 - fullStar - (halfStar ? 1 : 0);
+                                                for (int i = 0; i < emptyStar; i++)
+                                                {
+                                                    <i class="fi fi-star-empty"></i>
                                                 }
                                             }
                                         </span>

@@ -18,5 +18,10 @@ namespace Domain.DTO
         /// Все отзывы об объекте
         /// </summary>
         public ICollection<ReviewDto> Reviews { get; set; } = new List<ReviewDto>();
+
+        /// <summary>
+        /// Добавление отзыва
+        /// </summary>
+        public AddReviewDto AddReview { get; set; } = new AddReviewDto();
     }
 }

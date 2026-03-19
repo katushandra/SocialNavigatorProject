@@ -334,5 +334,110 @@ namespace SocialNavigator.Controllers
         }
         #endregion
 
+        #region AddReview Добавление отзыва
+        [Authorize]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AddReview(AddReviewDto model, CancellationToken cancellationToken)
+        {
+            var user = await userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return RedirectToAction("Login", "Account");
+            }
+
+            if (!ModelState.IsValid)
+            {
+                var fullObjectDto = await context.SocialObject
+                   .Include(x => x.ObjectType)
+                   .Include(x => x.Reviews)
+                       .ThenInclude(r => r.User)
+                   .Where(x => x.IdObject == model.ObjectId && x.Status == Status.Approved)
+                   .ProjectTo<FullSocialObjectDto>(mapper.ConfigurationProvider)
+                   .FirstOrDefaultAsync(cancellationToken);
+
+                if (fullObjectDto == null)
+                {
+                    return NotFound();
+                }
+
+                // Заполняем данные из формы в свойство NewReview
+                fullObjectDto.AddReview = model;
+
+                // Добавляем объекты в ViewBag для выпадающих списков, если они нужны
+                var objectTypes = await context.ObjectType
+                    .OrderBy(x => x.Name)
+                    .ToListAsync();
+                ViewBag.ObjectTypes = objectTypes;
+
+                return View("Full", fullObjectDto);
+            }
+
+            var review = mapper.Map<Review>(model);
+            review.UserId = user.Id;
+
+            context.Review.Add(review);
+            await context.SaveChangesAsync(cancellationToken);
+
+            await UpdateObjectScore(model.ObjectId, cancellationToken);
+            await context.SaveChangesAsync(cancellationToken);
+
+            logger.LogInformation("Пользователь {UserName} добавил отзыв на объект {ObjectId}",
+                user.UserName, model.ObjectId);
+
+            TempData["SuccessMessage"] = "Отзыв успешно добавлен";
+            return RedirectToAction(nameof(Full), new { id = model.ObjectId });
+        }
+        #endregion
+
+        #region DeleteReview Удаление отзыва
+        [Authorize]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteReview(Guid id, Guid objectId, CancellationToken cancellationToken)
+        {
+            var user = await userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return RedirectToAction("Login", "Account");
+            }
+
+            var review = await context.Review
+                .FirstOrDefaultAsync(x => x.IdReview == id && x.UserId == user.Id, cancellationToken);
+
+            if (review == null)
+            {
+                return NotFound();
+            }
+
+            context.Review.Remove(review);
+
+            await UpdateObjectScore(objectId, cancellationToken);
+
+            await context.SaveChangesAsync(cancellationToken);
+
+            logger.LogInformation("Пользователь {UserName} удалил отзыв {ReviewId}",
+                user.UserName, id);
+
+            TempData["SuccessMessage"] = "Отзыв удален";
+            return RedirectToAction(nameof(Full), new { id = objectId });
+        }
+
+        // Обновление средней оценки объекта
+        private async Task UpdateObjectScore(Guid objectId, CancellationToken cancellationToken)
+        {
+            var averageScore = await context.Review
+                .Where(x => x.ObjectId == objectId)
+                .AverageAsync(x => (decimal?)x.Score, cancellationToken) ?? 0;
+
+            var socialObject = await context.SocialObject
+                .FirstOrDefaultAsync(x => x.IdObject == objectId, cancellationToken);
+
+            if (socialObject != null)
+            {
+                socialObject.ScoreObject = Math.Round(averageScore, 1);
+            }
+        }
+        #endregion
     }
 }

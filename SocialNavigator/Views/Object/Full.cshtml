@@ -1,7 +1,13 @@
 ﻿@model Domain.DTO.FullSocialObjectDto
+@using Microsoft.AspNetCore.Identity
+@using Domain.Entity
+@inject SignInManager<AppUser> SignInManager
+@inject UserManager<AppUser> UserManager
 @{
     ViewData["Title"] = Model.SocialObjectDto?.Name ?? "Карточка объекта";
     var obj = Model.SocialObjectDto;
+    var user = await UserManager.GetUserAsync(User);
+    var hasUserReviewed = Model.Reviews?.Any(r => r.AppUser?.IdUser == user?.Id) ?? false;
 }
 
 <!-- Блок: обложка -->
@@ -104,9 +110,25 @@
                     <div class="card-body p-4">
                         <div class="d-flex justify-content-between align-items-center mb-4">
                             <h2 class="h4 fw-bold mb-0">
-                                <i class="fi fi-star-empty text-primary me-2"></i>Отзывы
+                                <i class="fi fi-star-empty text-primary me-2"></i>Отзывы  (@(Model.Reviews?.Count ?? 0))
                             </h2>                           
                         </div>
+
+                        @if (TempData["SuccessMessage"] != null)
+                        {
+                            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                                @TempData["SuccessMessage"]
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        }
+
+                        @if (TempData["ErrorMessage"] != null)
+                        {
+                            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                @TempData["ErrorMessage"]
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        }
 
                         @if (Model.Reviews != null && Model.Reviews.Any())
                         {
@@ -122,47 +144,102 @@
                                                 </div>
                                                 <div class="text-warning">
                                                     @{
-                                                        for (int i = 0; i < 5; i++)
+                                                        for (int i = 1; i <= review.Score; i++)
                                                         {
-                                                            if (i < Math.Floor(review.Score))
-                                                            {
-                                                                <i class="fi fi-star-filled"></i>
-                                                            }
-                                                            else if (i < review.Score)
-                                                            {
-                                                                <i class="fi fi-star-half"></i>
-                                                            }
-                                                            else
-                                                            {
-                                                                <i class="fi fi-star"></i>
-                                                            }
+                                                            <i class="fi fi-star-full"></i>
+                                                        }
+
+                                                        for (int i = 1; i <= 5 - review.Score; i++)
+                                                        {
+                                                            <i class="fi fi-star-empty"></i>
                                                         }
                                                     }
-                                                    <span class="ms-2 text-dark">@review.Score.ToString("F1")</span>
+                                                    <span class="ms-2 text-muted">@review.Score.ToString("F1")</span>
                                                 </div>
                                             </div>
                                             <p class="card-text mb-0">@review.Comment</p>
+                                            @if (user != null && review.AppUser?.IdUser == user.Id)
+                                            {
+                                                <div class="mt-2 text-end">
+                                                    <button type="button" class="btn btn-sm btn-outline-danger btn-pill" onclick="deleteReview('@review.IdReview')">
+                                                        <i class="fi fi-thrash"></i> Удалить
+                                                    </button>
+                                                </div>
+                                            }
                                         </div>
                                     </div>
                                 }
-                            </div>
-
-                            <!-- Кнопка добавить отзыв-->
-                            <div class="text-center mt-4">
-                                <button class="btn btn-primary btn-pill scroll-to mx-2">
-                                    <i class="fi fi-plus me-2"></i>Добавить отзыв
-                                </button>
                             </div>
                         }
                         else
                         {
                             <div class="text-center py-5">
                                 <h5 class="fw-bold">Пока нет отзывов</h5>
-                                <p class="text-muted">Будьте первым, кто оставит отзыв об этом объекте</p>
-                                <button class="btn btn-primary btn-pill scroll-to mx-2">
-                                    <i class="fi fi-plus me-2"></i>Добавить отзыв
-                                </button>    
+                                 <p class="text-muted">Будьте первым, кто оставит отзыв об этом объекте</p>                              
                             </div>
+                            
+                        }
+
+                        @if (!SignInManager.IsSignedIn(User))
+                        {
+                            <div class="text-center py-5">
+                                <p class="text-muted">Войдите в аккаунт, чтобы поделиться своим мнением</p>
+                                <a asp-controller="Account" asp-action="Login" class="btn btn-primary btn-pill">
+                                    Войти
+                                </a>
+                            </div>
+                        }
+                        <!-- Форма добавления отзыва -->
+                        @if (SignInManager.IsSignedIn(User) && !hasUserReviewed)
+                        {
+                            <form asp-controller="Object" asp-action="AddReview" method="post" id="reviewForm">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="ObjectId" value="@obj?.IdObject" />
+
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Ваша оценка <span class="text-danger">*</span></label>
+                                    <div class="text-warning rating-stars d-flex">
+                                        @for (int i = 1; i <= 5; i++)
+                                        {
+                                            <i class="star-rating fi fi-star-empty" data-rating="@i" style="font-size: 2rem; cursor: pointer; margin-right: 4px;"></i>
+                                        }
+                                    </div>
+                                    <input type="hidden" name="Score" id="selectedScore" value="@Model.AddReview?.Score" />
+                                    @if (ViewData.ModelState["Score"]?.Errors?.Any() == true)
+                                    {
+                                        <span class="text-danger d-block mt-2 small">@ViewData.ModelState["Score"].Errors[0].ErrorMessage</span>
+                                    }
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="Comment" class="form-label fw-bold">
+                                        Комментарий <span class="text-danger">*</span>
+                                    </label>
+                                    <div class="form-floating">
+                                        <textarea name="Comment"
+                                              id="Comment"
+                                              class="form-control @(ViewData.ModelState["Comment"]?.Errors?.Any())"
+                                              placeholder="Поделитесь своим опытом..."
+                                              style="height: 120px;"
+                                              maxlength="1000"
+                                              data-counter="commentCounter">@Model.AddReview?.Comment</textarea>
+                                        <label for="Comment">Комментарий</label>
+                                    </div>
+                                    <div class="d-flex justify-content-between mt-1">
+                                        @if (ViewData.ModelState["Comment"]?.Errors?.Any() == true)
+                                        {
+                                            <span class="text-danger small">@ViewData.ModelState["Comment"].Errors[0].ErrorMessage</span>
+                                        }
+                                        <span class="small text-muted ms-auto"><span id="commentCounter">@(Model.AddReview?.Comment?.Length ?? 0)</span>/1000</span>
+                                    </div>
+                                </div>
+
+                                <div class="text-center">
+                                    <button type="submit" class="btn btn-primary btn-pill">
+                                        Отправить отзыв
+                                    </button>
+                                </div>
+                            </form>
                         }
                     </div>
                 </div>
@@ -174,30 +251,39 @@
                 <div class="card border-0 shadow-sm mb-4">
                     <div class="card-body p-4 text-center">
                         <h3 class="display-1 fw-bold text-primary mb-2">@obj?.ScoreObject.ToString("F1")</h3>
-                        <!-- Звезды рейтинга -->
-                        <div class="mb-3">
-                            <span class="text-warning">
-                                @{
-                                    var score = obj?.ScoreObject ?? 0;
-                                    for (int i = 0; i < 5; i++)
-                                    {
-                                        if (i < Math.Floor(score))
-                                        {
-                                            <i class="fi fi-star-filled fs-4"></i>
-                                        }
-                                        else if (i < score)
-                                        {
-                                            <i class="fi fi-star-half fs-4"></i>
-                                        }
-                                        else
-                                        {
-                                            <i class="fi fi-star fs-4"></i>
-                                        }
-                                    }
+                        <div class="text-warning fs-3">
+                            @{
+                                decimal score = obj?.ScoreObject ?? 0;
+                                int fullStar = (int)Math.Floor(score);
+                                bool halfStar = (score - fullStar) >= 0.5m;
+
+                                for (int i = 0; i < fullStar; i++)
+                                {
+                                    <i class="fi fi-star-full"></i>
                                 }
-                            </span>
+
+                                if (halfStar)
+                                {
+                                    <i class="fi fi-start-half"></i>
+                                }
+
+                                int emptyStar = 5 - fullStar - (halfStar ? 1 : 0);
+                                for (int i = 0; i < emptyStar; i++)
+                                {
+                                    <i class="fi fi-star-empty"></i>
+                                }
+                            }
                         </div>
-                        <p class="text-muted mb-0">Общая оценка на основе @Model.Reviews.Count отзывов</p>
+                        <p class="text-muted mb-0">Общая оценка на основе @Model.Reviews.Count 
+                            @if (Model.Reviews.Count == 1)
+                            {
+                                @:отзыва
+                            }
+                            else 
+                            {
+                                @:отзывов
+                            }
+                        </p>
                     </div>
                 </div>
 
@@ -221,3 +307,105 @@
     </div>
 </div>
 
+<!-- Модальное окно для удаления отзыва -->
+<div class="modal fade" id="deleteReviewModal" tabindex="-1" aria-labelledby="deleteReviewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteReviewModalLabel">Удаление отзыва</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center py-3">
+                    <i class="fi fi-thrash fs-1 text-danger"></i>
+                    <p class="mb-0">Вы действительно хотите удалить этот отзыв?</p>
+                </div>
+            </div>
+            <div class="modal-footer d-flex justify-content-between">
+                <button type="button" class="btn btn-outline-secondary btn-pill" data-bs-dismiss="modal">
+                    Отмена
+                </button>
+                <form id="deleteReviewForm" asp-controller="Object" asp-action="DeleteReview" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" id="deleteReviewId" value="" />
+                    <input type="hidden" name="objectId" id="deleteObjectId" value="@obj?.IdObject" />
+                    <button type="submit" class="btn btn-danger btn-pill">
+                        Удалить
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Инициализация счетчиков символов
+            initCharacterCounters();
+
+            // Звезды рейтинга
+            const stars = $('.star-rating');
+            const selectedScore = $('#selectedScore');
+
+            // Функция обновления звезд на основе рейтинга
+            function updateStars(rating) {
+                stars.each(function(index) {
+                    const starRating = $(this).data('rating');
+                    if (starRating <= rating) {
+                        $(this).removeClass('fi-star-empty').addClass('fi-star-full active');
+                    } else {
+                        $(this).removeClass('fi-star-full active').addClass('fi-star-empty');
+                    }
+                });
+            }
+
+            // Обработчик клика на звезду
+            stars.on('click', function() {
+                const rating = $(this).data('rating');
+                selectedScore.val(rating);
+                updateStars(rating);
+            });
+
+            // Инициализация при загрузке (если была ошибка валидации)
+            const savedScore = selectedScore.val();
+            if (savedScore > 0) {
+                updateStars(savedScore);
+            }
+        });
+
+        // Функция инициализации счетчиков символов
+        function initCharacterCounters() {
+            const inputs = document.querySelectorAll('[data-counter]');
+
+            inputs.forEach(input => {
+                const counterId = input.getAttribute('data-counter');
+                updateCharacterCounter(input.id, counterId);
+
+                input.addEventListener('input', function() {
+                    updateCharacterCounter(this.id, counterId);
+                });
+
+                input.addEventListener('keyup', function() {
+                    updateCharacterCounter(this.id, counterId);
+                });
+            });
+        }
+
+        // Функция обновления счетчика символов
+        function updateCharacterCounter(inputId, counterId) {
+            const input = document.getElementById(inputId);
+            const counter = document.getElementById(counterId);
+
+            if (input && counter) {
+                const currentLength = input.value.length;
+                counter.textContent = currentLength;               
+            }
+        }
+
+        function deleteReview(reviewId) {
+            $('#deleteReviewId').val(reviewId);
+            $('#deleteReviewModal').modal('show');
+        }
+    </script>
+}
