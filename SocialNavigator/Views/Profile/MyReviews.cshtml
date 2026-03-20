@@ -1,10 +1,153 @@
-﻿<div class="section jarallax" style="background-image:url('frontend/assets/images/background.png')">
+﻿@model IEnumerable<Domain.DTO.ReviewDto>
+@{
+    ViewData["Title"] = "Мои отзывы";
+}
+
+<!-- Блок: обложка -->
+<div class="section jarallax" style="background-image:url('/frontend/assets/images/background.png')">
     <div class="container py-5">
         <div class="row">
             <div class="col-lg-8 mx-auto text-center">
-
-                <h1 class="display-4 fw-bold mb-4">Здесь будут отзывы</h1>
+                <h1 class="display-4 fw-bold mb-4">Мои отзывы</h1>
+                <p class="lead mb-0">Все отзывы, оставленные вами</p>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Блок: отзывы -->
+<div class="section bg-light">
+    <div class="container">
+
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                @TempData["SuccessMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                @TempData["ErrorMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+
+
+        <!-- Список отзывов -->
+        <div id="reviews-container" class="row">
+            <div class="col-12">
+
+                @if (Model != null && Model.Any())
+                {
+                    @foreach (var review in Model)
+                    {
+                        <div class="card mb-3">
+                            <div class="card-body d-flex align-items-center">
+                                <div class="flex-grow-1">
+                                    <h5 class="card-title mb-2">
+                                        @review.ObjectName
+                                    </h5>
+
+                                    <div class="text-warning mb-2">
+                                        @{
+                                            for (int i = 1; i <= review.Score; i++)
+                                            {
+                                                <i class="fi fi-star-full"></i>
+                                            }
+
+                                            for (int i = 1; i <= 5 - review.Score; i++)
+                                            {
+                                                <i class="fi fi-star-empty"></i>
+                                            }
+                                        }
+                                        <span class="ms-1 text-dark">@review.Score.ToString("F1")</span>
+                                    </div>
+
+                                    <p class="card-text text-muted">
+                                        <i class="fi fi-calendar"></i> Создан: @review.ReviewCreatedAt.ToString("dd.MM.yyyy") <br>
+                                    </p>
+                                </div>
+
+                                <div class="d-flex gap-2 ms-4 align-items-center">
+                                    <a asp-controller="Object" asp-action="Full" asp-route-id="@review.ObjectId" class="btn btn-sm btn-outline-primary btn-pill">
+                                        Посмотреть
+                                    </a>
+
+                                    <button type="button" class="btn btn-sm btn-outline-danger btn-pill"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#deleteReviewModal-@review.IdReview">
+                                        <i class="fi fi-thrash me-1"></i>Удалить
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <!-- Отсутствие отзывов -->
+                    <div class="row">
+                        <div class="col-12 mx-auto">
+                            <div class="card border-0 shadow-sm text-center py-5">
+                                <div class="card-body">
+                                    <h3 class="fw-bold mb-3">У вас пока нет отзывов</h3>
+                                    <p class="text-muted mb-4">
+                                        Найдите интересующий вас объект и поделитесь своим мнением
+                                    </p>
+                                    <a asp-controller="Home" asp-action="Index" class="btn btn-primary btn-pill">
+                                        Найти объекты
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно для удаления отзыва -->
+<div class="modal fade" id="deleteReviewModal" tabindex="-1" aria-labelledby="deleteReviewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteReviewModalLabel">Удаление отзыва</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center py-3">
+                    <i class="fi fi-thrash fs-1 text-danger"></i>
+                    <p class="mb-0">Вы действительно хотите удалить этот отзыв?</p>
+                </div>
+            </div>
+            <div class="modal-footer d-flex justify-content-between">
+                <button type="button" class="btn btn-outline-secondary btn-pill" data-bs-dismiss="modal">
+                    Отмена
+                </button>
+                <form id="deleteReviewForm" asp-controller="Object" asp-action="DeleteReview" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" id="deleteReviewId" value="" />
+                    <input type="hidden" name="objectId" id="deleteObjectId" value="" />
+                    <button type="submit" class="btn btn-danger btn-pill">
+                        Удалить
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function deleteReview(reviewId, objectId) {
+            document.getElementById('deleteReviewId').value = reviewId;
+            document.getElementById('deleteObjectId').value = objectId;
+            const modal = new bootstrap.Modal(document.getElementById('deleteReviewModal'));
+            modal.show();
+        }
+    </script>
+}

@@ -293,11 +293,25 @@ namespace SocialNavigator.Controllers
 
         #region MyReviews Мои отзывы
         [HttpGet]
-        public async Task<IActionResult> MyReviews()
+        public async Task<IActionResult> MyReviews(CancellationToken cancellationToken)
         {
-            return View();
+            var user = await userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return RedirectToAction("Login", "Account");
+            }
+
+            var userReviews = await context.Review
+                .Include(x => x.Object)
+                .Where(x => x.UserId == user.Id)
+                .OrderByDescending(x => x.ReviewCreatedAt)
+                .ProjectTo<ReviewDto>(mapper.ConfigurationProvider)
+                .ToListAsync(cancellationToken);
+
+            return View(userReviews);
         }
+
         #endregion
-        
+
     }
 }
