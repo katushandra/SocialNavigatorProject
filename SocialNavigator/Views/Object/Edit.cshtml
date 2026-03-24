@@ -1,12 +1,10 @@
 ﻿@model Domain.DTO.AddSocialObjectDto
 @{
     ViewData["Title"] = "Редактирование объекта";
-    <!-- FIX: Получаем ID объекта из ViewBag, который передается из контроллера -->
     var objectId = ViewBag.ObjectId;
 }
+@inject Microsoft.Extensions.Configuration.IConfiguration Configuration
 
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
     /* Стили для подсказок адреса */
     .address-suggestions {
@@ -48,6 +46,7 @@
             margin-top: 4px;
         }
 </style>
+
 <div class="container py-5">
     <!-- Заголовок -->
     <div class="row mb-5">
@@ -111,9 +110,7 @@
                                 <label asp-for="Address" class="form-label fw-bold">
                                     Адрес <span class="text-danger">*</span>
                                 </label>
-                                <div class="small text-muted mb-2">
-                                    <span>В формате: город, улица, дом. Например: Санкт-Петербург, Невский проспект, 28</span>
-                                </div>
+                                <div id="addressStatus" class="small mb-2"></div>
                                 <div class="position-relative">
                                     <div class="input-group">
                                         <div class="form-floating flex-grow-1">
@@ -133,10 +130,10 @@
                                     <div id="addressSuggestions" class="address-suggestions"></div>
                                 </div>
                                 <div class="d-flex justify-content-between mt-1">
+                                    <span class="small text-muted">В формате: город, улица, дом. Например: Санкт-Петербург, Невский проспект, 28</span>
                                     <span asp-validation-for="Address" class="text-danger small"></span>
                                     <span class="small text-muted"><span id="addressCounter">0</span>/255</span>
                                 </div>
-                                <div id="addressStatus" class="mt-2 small"></div>
                             </div>
 
                             <div class="mb-4">
@@ -145,7 +142,7 @@
                                 <input type="hidden" id="Latitude" name="Latitude" />
                                 <input type="hidden" id="Longitude" name="Longitude" />
                                 <div class="form-text mt-2">
-                                    Вы можете кликнуть карте, чтобы уточнить местоположение.
+                                    Вы можете кликнуть на карте, чтобы уточнить местоположение.
                                 </div>
                             </div>
 
@@ -185,7 +182,7 @@
                             </div>
                         </div>
 
-                        <!-- Доступность  -->
+                        <!-- Доступность -->
                         <div class="mb-5">
                             <h4 class="fw-bold mb-4">Критерии доступности</h4>
                             <p class="text-muted mb-4">Отметьте, для каких категорий маломобильности доступен объект</p>
@@ -244,7 +241,7 @@
 
                         <!-- Кнопки -->
                         <div class="d-flex justify-content-between mt-5">
-                            <button type="button" id="btnCancel" class="btn btn-outline-secondary btn-pill  px-5" onclick="window.location.href='@Url.Action("MyObjects", "Profile")'">
+                            <button type="button" id="btnCancel" class="btn btn-outline-secondary btn-pill px-5" onclick="window.location.href='@Url.Action("MyObjects", "Profile")'">
                                 Отмена
                             </button>
                             <div>
@@ -286,10 +283,12 @@
 </div>
 
 @section Scripts {
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://api-maps.yandex.ru/2.1/?apikey=@Configuration["YandexMaps:ApiKey"]&lang=ru_RU"></script>
     <script>
-        let map, marker;
+        let map;
+        let placemark;
         let searchTimeout;
+        let currentSearchAddress = '';
 
         @{
             var hasCoordinates = ViewBag.Latitude != null && ViewBag.Longitude != null;
@@ -300,125 +299,274 @@
 
             if (hasCoordinates)
             {
-                  try
-                  {
-                       lat = Convert.ToDouble(ViewBag.Latitude).ToString(System.Globalization.CultureInfo.InvariantCulture);
-                       lng = Convert.ToDouble(ViewBag.Longitude).ToString(System.Globalization.CultureInfo.InvariantCulture);
-                       zoom = 17;                                                      
-                  }
-                  catch
-                  {
-                       hasCoordinates = false;
-                  }
-             }                    
+                try
+                {
+                    lat = Convert.ToDouble(ViewBag.Latitude).ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    lng = Convert.ToDouble(ViewBag.Longitude).ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    zoom = 17;
+                }
+                catch
+                {
+                    hasCoordinates = false;
+                }
+            }
         }
 
-        // Инициализация при загрузке страницы
-        document.addEventListener('DOMContentLoaded', function()
+        // Инициализация карты
+        function initMap() 
         {
-            initMap(parseFloat(@lat), parseFloat(@lng), @zoom);
-            initCharacterCounters();
-            initAddressSearch();
+            const defaultCenter = [parseFloat(@lat), parseFloat(@lng)];
+            
+            map = new ymaps.Map('map', {
+                center: defaultCenter,
+                zoom: @zoom,
+                controls: ['zoomControl', 'fullscreenControl']
+            });
+
+            map.events.add('click', function(e) {
+                const coords = e.get('coords');
+                updateMarker(coords);
+                getAddressFromCoords(coords);
+            });
+
             @if (hasCoordinates)
             {
-                  <text>
-                  setTimeout(function()
-                  {
-                      const latlng = L.latLng(parseFloat(@lat), parseFloat(@lng));
-                      updateMarker(latlng);
-                   }, 500);
-                   </text>                       
+                <text>
+                setTimeout(function() {
+                    const coords = [parseFloat(@lat), parseFloat(@lng)];
+                    updateMarker(coords);
+                }, 500);
+                </text>
             }
-        });
+        }
 
-        // Инициализация карты
-        function initMap(centerLat, centerLng, zoomLevel) 
+        // Проверка точности совпадения адреса
+        function isAddressExactMatch(foundAddress, searchedAddress) 
         {
-            map = L.map('map').setView([centerLat, centerLng], zoomLevel);
-
-            L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-            }).addTo(map);
-
-            map.on('click', function(e) {
-                 updateMarker(e.latlng);
-                 getAddressFromCoords(e.latlng.lat, e.latlng.lng);
-            });
+            const foundLower = foundAddress.toLowerCase();
+            const searchedLower = searchedAddress.toLowerCase();
+            
+            const normalizeAddress = (addr) => {
+                return addr.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '')
+                          .replace(/\s+/g, ' ')
+                          .trim();
+            };
+            
+            const normalizedFound = normalizeAddress(foundLower);
+            const normalizedSearched = normalizeAddress(searchedLower);
+            
+            const hasHouseNumber = /\d+/.test(normalizedSearched);
+            
+            if (hasHouseNumber) 
+            {
+                const houseNumberMatch = normalizedSearched.match(/\d+/g);
+                if (houseNumberMatch) 
+                {
+                    const houseNumber = houseNumberMatch[0];
+                    if (!normalizedFound.includes(houseNumber)) 
+                    {
+                        return false;
+                    }
+                }
+            }
+            
+            const searchedWords = normalizedSearched.split(' ');
+            let matchCount = 0;
+            
+            for (let word of searchedWords) 
+            {
+                if (word.length > 2 && normalizedFound.includes(word)) 
+                {
+                    matchCount++;
+                }
+            }
+            
+            const significantWords = searchedWords.filter(w => w.length > 2).length;
+            if (significantWords === 0) 
+            {
+                return true;
+            }
+            return matchCount / significantWords >= 0.7;
         }
 
         // Обновление маркера на карте
-        function updateMarker(latlng)
+        function updateMarker(coords) 
         {
-            if (marker) 
+            if (placemark) 
             {
-                marker.setLatLng(latlng);
+                placemark.geometry.setCoordinates(coords);
             } 
-            else 
+            else
             {
-                marker = L.marker(latlng, {
-                    draggable: true 
-                }).addTo(map);
+                placemark = new ymaps.Placemark(coords, {}, {
+                    preset: 'islands#redDotIcon',
+                    draggable: true
+                });
+                map.geoObjects.add(placemark);
 
-                marker.on('dragend', function(e) {
-                    const newLatLng = e.target.getLatLng();
-                    getAddressFromCoords(newLatLng.lat, newLatLng.lng);
+                placemark.events.add('dragend', function() {
+                    const newCoords = placemark.geometry.getCoordinates();
+                    updateCoordinatesFields(newCoords);
+                    getAddressFromCoords(newCoords);
                 });
             }
 
-            document.getElementById('Latitude').value = latlng.lat;
-            document.getElementById('Longitude').value = latlng.lng;
-
-            map.setView(latlng, 17);
+            updateCoordinatesFields(coords);
+            map.setCenter(coords, 17);
         }
 
-        // Получение адреса по координатам карты
-        async function getAddressFromCoords(lat, lng) 
+        // Обновление полей с координатами
+        function updateCoordinatesFields(coords) 
         {
-            try 
+            document.getElementById('Latitude').value = coords[0];
+            document.getElementById('Longitude').value = coords[1];
+        }
+
+        // Очистка маркера и координат
+        function clearMarkerAndCoordinates() 
+        {
+            if (placemark) 
             {
-                showAddressStatus('Определение адреса по карте...', 'info');
+                map.geoObjects.remove(placemark);
+                placemark = null;
+            }
+            document.getElementById('Latitude').value = '';
+            document.getElementById('Longitude').value = '';
+        }
 
-                const response = await fetch('@Url.Action("CheckCordinate", "Object")', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
-                    },
-                    body: JSON.stringify({
-                        latitude: lat,
-                        longitude: lng
-                    })
-                });
-
-                const data = await response.json();
-
-                if (data.success && data.address) 
+        // Получение адреса по координатам (по карте)
+        function getAddressFromCoords(coords) 
+        {
+            ymaps.geocode(coords).then(function(res) 
+            {
+                const firstGeoObject = res.geoObjects.get(0);
+                if (firstGeoObject) 
                 {
-                    document.getElementById('objectAddress').value = data.address;
+                    const address = firstGeoObject.getAddressLine();
+                    const addressInput = document.getElementById('objectAddress');
+                    addressInput.value = address;
                     updateCharacterCounter('objectAddress', 'addressCounter');
                     showAddressStatus('Адрес определен по карте', 'success');
+                }
+            }).catch(function(error) {
+                console.error('Ошибка поиска по карте', error);
+                showAddressStatus('Не удалось определить адрес по координатам карты', 'danger');
+            });
+        }
+
+        // Поиск адреса с проверкой точности
+        function searchAddress(address) 
+        {
+            if (!address || address.trim().length < 3) 
+            {
+                return;
+            }
+
+            currentSearchAddress = address.trim();
+            showAddressStatus('Поиск...', 'info');
+
+            ymaps.geocode(address, {
+                results: 5,
+                strictBounds: false
+            }).then(function(res) {
+                const geoObjects = res.geoObjects;
+                const exactMatches = [];
+                const approximateMatches = [];
+
+                geoObjects.each(function(obj) {
+                    const foundAddress = obj.getAddressLine();
+                    const coords = obj.geometry.getCoordinates();
+                    const isExact = isAddressExactMatch(foundAddress, currentSearchAddress);
+                    
+                    if (isExact) {
+                        exactMatches.push({ obj, address: foundAddress, coords });
+                    } else {
+                        approximateMatches.push({ obj, address: foundAddress, coords });
+                    }
+                });
+
+                if (exactMatches.length > 0)
+                {
+                    showAddressSuggestions(exactMatches);
+                    showAddressStatus(`Найдено ${exactMatches.length} точных совпадений`, 'success');
+                } 
+                else if (approximateMatches.length > 0) 
+                {
+                    showAddressSuggestions(approximateMatches, true);
+                    showAddressStatus(`Нет точных совпадений. Выберите из предложенных вариантов`, 'warning');
                 } 
                 else 
                 {
-                    showAddressStatus(data.message, 'warning');
+                    hideAddressSuggestions();
+                    clearMarkerAndCoordinates();
+                    showAddressStatus('Адрес не найден. Проверьте правильность ввода', 'danger');
                 }
-            } 
-            catch (error) 
-            {
-                console.error('Ошибка получения адреса по карте:', error);
-                showAddressStatus('Ошибка при определении адреса по карте', 'danger');
+            }).catch(function(error) {
+                console.error('Ошибка поиска:', error);
+                hideAddressSuggestions();
+                clearMarkerAndCoordinates();
+                showAddressStatus('Ошибка при поиске адреса', 'danger');
+            });
+        }
+
+        // Показ подсказок адресов
+        function showAddressSuggestions(matches, isApproximate = false) 
+        {
+            const suggestionsDiv = document.getElementById('addressSuggestions');
+            suggestionsDiv.innerHTML = '';
+
+            matches.forEach(match => {
+                const item = document.createElement('div');
+                item.className = 'address-suggestion-item';
+                item.innerHTML = `
+                    <div>${match.address}</div>
+                    <small>${isApproximate ? 'Приблизительный вариант' : 'Точное совпадение'} - нажмите для выбора</small>
+                `;
+
+                item.onclick = function() {
+                    document.getElementById('objectAddress').value = match.address;
+                    updateMarker(match.coords);
+                    hideAddressSuggestions();
+                    showAddressStatus('Адрес выбран', 'success');
+                };
+
+                suggestionsDiv.appendChild(item);
+            });
+
+            suggestionsDiv.style.display = 'block';
+        }
+
+        // Скрытие подсказок
+        function hideAddressSuggestions() 
+        {
+            const suggestionsDiv = document.getElementById('addressSuggestions');
+            if (suggestionsDiv) {
+                suggestionsDiv.style.display = 'none';
             }
+        }
+
+        // Отображение статуса адреса
+        function showAddressStatus(message, type) 
+        {
+            const statusDiv = document.getElementById('addressStatus');
+            let className = '';
+            switch(type) 
+            {
+                case 'success': className = 'text-success'; break;
+                case 'danger': className = 'text-danger'; break;
+                case 'warning': className = 'text-warning'; break;
+                default: className = 'text-info';
+            }
+            statusDiv.innerHTML = `<span class="${className}">${message}</span>`;
         }
 
         // Инициализация счетчиков символов
         function initCharacterCounters() 
         {
-            const inputs = document.querySelectorAll('[data-counter]'); // все поля с атрибутом data-counter
+            const inputs = document.querySelectorAll('[data-counter]');
             inputs.forEach(input => {
-                const counterId = input.getAttribute('data-counter'); // id счетчика
-                updateCharacterCounter(input.id, counterId); // обновление значения
-
-                // обработчик ввода для каждого поля
+                const counterId = input.getAttribute('data-counter');
+                updateCharacterCounter(input.id, counterId);
                 input.addEventListener('input', function() {
                     updateCharacterCounter(this.id, counterId);
                 });
@@ -426,209 +574,41 @@
         }
 
         // Обновление конкретного счетчика
-        function updateCharacterCounter(inputId, counterId)
+        function updateCharacterCounter(inputId, counterId) 
         {
             const input = document.getElementById(inputId);
             const counter = document.getElementById(counterId);
-            if (input && counter)
+            if (input && counter) 
             {
                 counter.textContent = input.value.length;
             }
         }
-        // Форматирование адреса
-        function formatAddress(address)
-        {
-            if (!address) return null;
-
-            const parts = [];
-
-            // Город/населенный пункт
-            if (address.city) parts.push(address.city);
-            else if (address.town) parts.push(address.town);
-            else if (address.village) parts.push(address.village);
-            else if (address.hamlet) parts.push(address.hamlet);
-
-            // Улица
-            if (address.road) parts.push(address.road);
-            else if (address.pedestrian) parts.push(address.pedestrian);
-            else if (address.street) parts.push(address.street);
-
-            // Номер дома
-            if (address.house_number) parts.push(address.house_number);
-            else if (address.house_name) parts.push(address.house_name);
-
-            return parts.length > 0 ? parts.join(', ') : null;
-        }
-
-        // Инициализация поиска адреса
-        function initAddressSearch() {
-            const addressInput = document.getElementById('objectAddress');
-            const suggestionsDiv = document.getElementById('addressSuggestions');
-
-            // обработчик ввода адреса
-            addressInput.addEventListener('input', function()
-            {
-                clearTimeout(searchTimeout); // отмена предыдущий таймер
-                const query = this.value.trim();
-
-                // поиск при <3 символов не осуществляется
-                if (query.length < 3)
-                {
-                    suggestionsDiv.style.display = 'none';
-                    return;
-                }
-                // задержка 5 с перед поиском
-                searchTimeout = setTimeout(() => searchAddress(query), 500);
-            });
-
-            // закрытие подсказок при клике вне поля подсказок
-            document.addEventListener('click', function(e)
-            {
-                if (!addressInput.contains(e.target) && !suggestionsDiv.contains(e.target))
-                {
-                    suggestionsDiv.style.display = 'none';
-                }
-            });
-
-            // обработчик кнопки проверки адреса
-            document.getElementById('checkAddressBtn').addEventListener('click', checkAddress);
-        }
-
-        // Поиск адреса
-        async function searchAddress(query)
-        {
-            try
-            {
-                const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&addressdetails=1&limit=5&layer=address`);
-                const results = await response.json();
-
-                const suggestionsDiv = document.getElementById('addressSuggestions');
-                suggestionsDiv.innerHTML = ''; // очистка старых подсказок
-
-                if (results && results.length > 0)
-                {
-                    results.forEach(result =>
-                    {
-                        const address = formatAddress(result.address);
-                        if (address)
-                        {
-                            const div = document.createElement('div'); // элемент подсказки в формате
-                            div.className = 'address-suggestion-item';
-                            div.innerHTML = `
-                                <div>${address}</div>
-                                <small>${result.display_name.split(',').slice(0, 3).join(',')}</small>
-                            `;
-                            div.addEventListener('click', () => selectAddress(result, address)); // при клике - адрес
-                            suggestionsDiv.appendChild(div);
-                        }
-                    });
-                    suggestionsDiv.style.display = 'block'; // показ подсказок
-                }
-                else
-                {
-                    suggestionsDiv.style.display = 'none';
-                }
-            }
-            catch (error)
-            {
-                console.error('Ошибка поиска адреса:', error);
-            }
-        }
-
-        // Выбор адреса из подсказок
-        function selectAddress(result, formattedAddress)
-        {
-            document.getElementById('objectAddress').value = formattedAddress; // вставка адрес
-            updateCharacterCounter('objectAddress', 'addressCounter'); // обновление счетчик
-
-            const lat = parseFloat(result.lat); // широта
-            const lng = parseFloat(result.lon); // долгота
-
-            updateMarker([lat, lng]); // маркет
-            map.setView([lat, lng], 17); // центр и зум 17
-
-            document.getElementById('addressSuggestions').style.display = 'none'; // скрытие подсказок
-            showAddressStatus('Адрес выбран', 'success');
-        }
-
-        // Проверка адреса CheckAddress
-        async function checkAddress()
-        {
-            const address = document.getElementById('objectAddress').value;
-            if (!address) {
-                showAddressStatus('Скрипт Введите адрес', 'danger');
-                return;
-            }
-
-            showAddressStatus('Скрипт Поиск адреса...', 'info');
-
-            try
-            {
-                // запрос к методу CheckAddress
-                const response = await fetch('@Url.Action("CheckAddress", "Object")', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json', // тип отправляемых данных
-                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value // токен CSRF
-                    },
-                    body: JSON.stringify({ address: address }) // адрес в JSON
-                });
-
-                const data = await response.json();
-
-                if (data.success)
-                {
-                    showAddressStatus(data.message, 'success');
-                    updateMarker([data.latitude, data.longitude]);
-                    map.setView([data.latitude, data.longitude], 17);
-                }
-                else
-                {
-                    showAddressStatus(data.message, 'danger');
-                }
-            }
-            catch (error)
-            {
-                showAddressStatus('Ошибка при проверке адреса', 'danger');
-                console.error(error);
-            }
-        }
-
-        // Отображение статуса адреса
-        function showAddressStatus(message, type) {
-            const statusDiv = document.getElementById('addressStatus');
-            statusDiv.innerHTML = `<span class="text-${type}">${message}</span>`;
-        }
 
         // Валидации
-        function validate()
+        function validate() 
         {
-            const name = document.getElementById('objectName').value;
-            const address = document.getElementById('objectAddress').value;
+            const name = document.getElementById('objectName').value.trim();
+            const address = document.getElementById('objectAddress').value.trim();
             const type = document.getElementById('objectType').value;
+            const latitude = document.getElementById('Latitude').value;
 
-
-            if (!name && !address && !type)
-            {
-                showValidationError('Заполните все поля, отмеченные *');
-                return false;
-            }
-
-            else if (!name)
-            {
+            if (!name) {
                 showValidationError('Введите название объекта');
                 return false;
             }
 
-            else if (!address)
-            {
+            if (!address) {
                 showValidationError('Введите адрес объекта');
                 return false;
             }
 
-            else if (!type)
-            {
+            if (!type) {
                 showValidationError('Выберите тип объекта');
+                return false;
+            }
+
+            if (!latitude) {
+                showValidationError('Укажите местоположение на карте (кликните на карту или выберите адрес из подсказок)');
                 return false;
             }
 
@@ -645,26 +625,100 @@
             modal.show();
         }
 
-        // Обновление счетчика адреса при вводе
-        document.getElementById('objectAddress').addEventListener('input', function() {
-            updateCharacterCounter('objectAddress', 'addressCounter');
-        });
+        // Обработчики событий
+        document.addEventListener('DOMContentLoaded', function() {
+            // Инициализация карты после загрузки
+            ymaps.ready(initMap);
 
-        // Обновление счетчика описания при вводе
-        document.getElementById('objectDescription').addEventListener('input', function() {
-            updateCharacterCounter('objectDescription', 'descCounter');
-        });
+            // Инициализация счетчиков
+            initCharacterCounters();
 
-        // Обновление счетчика схемы проезда при вводе
-        document.getElementById('routeDescription').addEventListener('input', function() {
-            updateCharacterCounter('routeDescription', 'routeCounter');
-        });
+            // Кнопка "Найти на карте"
+            const checkAddressBtn = document.getElementById('checkAddressBtn');
+            if (checkAddressBtn) {
+                checkAddressBtn.addEventListener('click', function() {
+                    const address = document.getElementById('objectAddress').value.trim();
+                    if (!address) {
+                        showValidationError('Введите адрес для поиска');
+                        return;
+                    }
 
-        // FIX: Добавлена валидация перед отправкой формы
-        document.getElementById('editObjectForm').addEventListener('submit', function(event) {
-            if (!validate()) {
-                event.preventDefault();
+                    showAddressStatus('Поиск адреса...', 'info');
+
+                    ymaps.geocode(address, {
+                        results: 1
+                    }).then(function(res) {
+                        const firstGeoObject = res.geoObjects.get(0);
+                        if (firstGeoObject) {
+                            const foundAddress = firstGeoObject.getAddressLine();
+                            const coords = firstGeoObject.geometry.getCoordinates();
+                            
+                            if (isAddressExactMatch(foundAddress, address)) {
+                                updateMarker(coords);
+                                showAddressStatus('Адрес найден на карте', 'success');
+                            } else {
+                                showAddressStatus('Точный адрес не найден. Выберите из вариантов:', 'warning');
+                                ymaps.geocode(address, { results: 5 }).then(function(res2) {
+                                    const matches = [];
+                                    res2.geoObjects.each(function(obj) {
+                                        matches.push({
+                                            obj: obj,
+                                            address: obj.getAddressLine(),
+                                            coords: obj.geometry.getCoordinates()
+                                        });
+                                    });
+                                    if (matches.length > 0) {
+                                        showAddressSuggestions(matches, true);
+                                    } else {
+                                        clearMarkerAndCoordinates();
+                                        showAddressStatus('Адрес не найден', 'danger');
+                                    }
+                                });
+                            }
+                        } else {
+                            clearMarkerAndCoordinates();
+                            showAddressStatus('Адрес не найден', 'danger');
+                        }
+                    }).catch(function(error) {
+                        console.error('Ошибка поиска:', error);
+                        clearMarkerAndCoordinates();
+                        showAddressStatus('Ошибка при поиске адреса', 'danger');
+                    });
+                });
             }
+
+            // Обработчик ввода адреса с задержкой для подсказок
+            let debounceTimer;
+            const addressInput = document.getElementById('objectAddress');
+            if (addressInput) {
+                addressInput.addEventListener('input', function(e) {
+                    const address = e.target.value.trim();
+                    updateCharacterCounter('objectAddress', 'addressCounter');
+
+                    clearTimeout(debounceTimer);
+                    if (address.length >= 3) {
+                        debounceTimer = setTimeout(() => {
+                            searchAddress(address);
+                        }, 500);
+                    } else {
+                        hideAddressSuggestions();
+                    }
+                });
+            }
+
+            // Скрыть подсказки при клике вне
+            document.addEventListener('click', function(e) {
+                if (!e.target.closest('.position-relative')) {
+                    hideAddressSuggestions();
+                }
+            });
+
+            // Валидация перед отправкой формы
+            document.getElementById('editObjectForm').addEventListener('submit', function(event) {
+                if (!validate()) {
+                    event.preventDefault();
+                }
+            });
         });
     </script>
 }

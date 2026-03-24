@@ -4,11 +4,11 @@ using AutoMapper.QueryableExtensions;
 using Domain.DTO;
 using Domain.Entity;
 using Domain.Entity.Enums;
-using Infrastructure.Geo;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using NetTopologySuite.Geometries;
 using Org.BouncyCastle.Utilities;
 using System.Threading;
@@ -22,15 +22,13 @@ namespace SocialNavigator.Controllers
         private readonly IMapper mapper;
         private readonly UserManager<AppUser> userManager;
         private readonly ILogger<ObjectController> logger;
-        private readonly IGeoService geo;
 
-        public ObjectController(ILocalDbContext context, IMapper mapper, UserManager<AppUser> userManager, ILogger<ObjectController> logger, IGeoService geo)
+        public ObjectController(ILocalDbContext context, IMapper mapper, UserManager<AppUser> userManager, ILogger<ObjectController> logger)
         {
             this.context = context;
             this.mapper = mapper;
             this.userManager = userManager;
             this.logger = logger;
-            this.geo = geo;
         }
 
         #region Full карточка объекта
@@ -65,7 +63,7 @@ namespace SocialNavigator.Controllers
         [Authorize]
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Add(AddSocialObjectDto model) 
+        public async Task<IActionResult> Add(AddSocialObjectDto model, CancellationToken cancellationToken)
         {
             var user = await userManager.GetUserAsync(User);
             if (user == null)
@@ -75,7 +73,7 @@ namespace SocialNavigator.Controllers
 
             var objectTypes = await context.ObjectType
                 .OrderBy(x => x.Name)
-                .ToListAsync();
+                .ToListAsync(cancellationToken);
             ViewBag.ObjectTypes = objectTypes;
 
             if (!ModelState.IsValid)
@@ -84,7 +82,7 @@ namespace SocialNavigator.Controllers
             }
 
             var objectType = await context.ObjectType
-                .FirstOrDefaultAsync(x => x.IdObjectType == model.ObjectTypeId);
+                .FirstOrDefaultAsync(x => x.IdObjectType == model.ObjectTypeId, cancellationToken);
 
             if (objectType == null)
             {
@@ -92,101 +90,33 @@ namespace SocialNavigator.Controllers
                 return View(model);
             }
 
-            Point? location = null;
-            if (!string.IsNullOrWhiteSpace(model.Address))
+            var socialObject = mapper.Map<SocialObject>(model);
+
+            if (Request.Form.ContainsKey("Latitude") && Request.Form.ContainsKey("Longitude"))
             {
-                location = await geo.AddressСoordinate(model.Address);
-
-                if (location == null)
+                if (double.TryParse(Request.Form["Latitude"], out double latitude) &&
+                    double.TryParse(Request.Form["Longitude"], out double longitude))
                 {
-                    ModelState.AddModelError(nameof(model.Address), "Контроллер Не удалось определить координаты по указанному адресу. Пожалуйста, уточните адрес.");
-
-                    return View(model);
+                    var point = new Point(longitude, latitude)  // x - долгота, y - широта
+                    {
+                        SRID = 4326
+                    };
+                    socialObject.Location = point;
                 }
             }
 
-            var socialObject = mapper.Map<SocialObject>(model);
-
-            socialObject.Location = location;
             socialObject.CreatorId = user.Id;
 
             context.SocialObject.Add(socialObject);
-            await context.SaveChangesAsync();
+            await context.SaveChangesAsync(cancellationToken);
 
             logger.LogInformation("Пользователь {UserName} добавил новый объект {ObjectName} id - {ObjectId}",
                 user.UserName, model.Name, socialObject.IdObject);
 
-            TempData["SuccessMessage"] = "Объект спешно добавлен и отправлен на модерацию!";
+            TempData["SuccessMessage"] = "Объект успешно добавлен и отправлен на модерацию!";
             return RedirectToAction("MyObjects", "Profile");
         }
 
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> CheckAddress([FromBody] AddCheckAddress model)
-        {
-            try
-            {
-                if (string.IsNullOrWhiteSpace(model?.Address))
-                {
-                    return Json(new { success = false, message = "Адрес не указан" });
-                }
-
-                var location = await geo.AddressСoordinate(model.Address);
-
-                if (location != null)
-                {
-                    var formattedAddress = await geo.СoordinateAddress(location.Y, location.X);
-
-                    return Json(new
-                    {
-                        success = true,
-                        message = "Контроллер CheckAddress Адрес найден",
-                        address = formattedAddress ?? model.Address,
-                        latitude = location.Y,
-                        longitude = location.X
-                    });
-                }
-
-                return Json(new { success = false, message = " Контроллер CheckAddress Адрес не найден. Попробуйте уточнить или выбрать из предложенных вариантов." });
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Ошибка при проверке адреса: {Address}", model?.Address);
-                return Json(new { success = false, message = "Контроллер CheckAddress Ошибка при проверке адреса" });
-            }
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> CheckCordinate([FromBody] AddCheckCordinate model)
-        {
-            try
-            {
-                if (model == null)
-                {
-                    return Json(new { success = false, message = "Контроллер CheckCordinate Не указаны координаты" });
-                }
-
-                var address = await geo.СoordinateAddress(model.Latitude, model.Longitude);
-
-                if (!string.IsNullOrEmpty(address))
-                {
-                    return Json(new
-                    {
-                        success = true,
-                        address = address,
-                        message = "Контроллер CheckCordinate Координаты определены"
-                    });
-                }
-
-                return Json(new { success = false, message = " Контроллер CheckCordinate Не удалось определить адрес по координатам" });
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Ошибка при чтении координат");
-                return Json(new { success = false, message = " Контроллер CheckCordinate Ошибка при определении адреса" });
-            }
-        }
         #endregion
 
         #region Delete Удаление объекта
@@ -281,6 +211,10 @@ namespace SocialNavigator.Controllers
             if (!ModelState.IsValid)
             {
                 ViewBag.ObjectId = id;
+                var objectTypes = await context.ObjectType
+                    .OrderBy(x => x.Name)
+                    .ToListAsync();
+                ViewBag.ObjectTypes = objectTypes;
                 return View("Edit", model);
             }
 
@@ -298,23 +232,16 @@ namespace SocialNavigator.Controllers
                 return RedirectToAction("MyObjects", "Profile");
             }
 
-            if (socialObject.Address != model.Address && !string.IsNullOrWhiteSpace(model.Address))
+            if (Request.Form.ContainsKey("Latitude") && Request.Form.ContainsKey("Longitude"))
             {
-                var location = await geo.AddressСoordinate(model.Address);
-                if (location != null)
+                if (double.TryParse(Request.Form["Latitude"], out double latitude) &&
+                    double.TryParse(Request.Form["Longitude"], out double longitude))
                 {
-                    socialObject.Location = location;
-                }
-                else
-                {
-                    ModelState.AddModelError(nameof(model.Address), "Не удалось определить координаты по указанному адресу. Пожалуйста, уточните адрес.");
-
-                    ViewBag.ObjectId = id;
-                    var objectTypes = await context.ObjectType
-                        .OrderBy(x => x.Name)
-                        .ToListAsync();
-                    ViewBag.ObjectTypes = objectTypes;
-                    return View("Edit", model);
+                    var point = new Point(longitude, latitude)  // x - долгота, y - широта
+                    {
+                        SRID = 4326
+                    };
+                    socialObject.Location = point;
                 }
             }
 

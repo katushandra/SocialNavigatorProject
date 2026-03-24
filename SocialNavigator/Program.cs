@@ -2,7 +2,6 @@ using Application.Common.Interfaces;
 using Application.Mapping;
 using Domain.Entity;
 using Infrastructure.Email;
-using Infrastructure.Geo;
 using Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -26,8 +25,6 @@ public class Program
         builder.Services.AddScoped<ILocalDbContext, LocalDbContext>();
 
         builder.Services.Configure<Smtp>(builder.Configuration.GetSection("Smtp"));
-
-        builder.Services.AddHttpClient<IGeoService, GeoService>();
 
         builder.Services.AddIdentity<AppUser, IdentityRole<Guid>>(options =>
         {
