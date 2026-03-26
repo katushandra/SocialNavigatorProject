@@ -75,5 +75,10 @@ namespace Domain.DTO
         /// </summary>
         public decimal ScoreObject { get; set; } = 0.0m;
 
+        /// <summary>
+        /// координаты объекта
+        /// </summary>
+        public Point? Location { get; set; }
+
     }
 }

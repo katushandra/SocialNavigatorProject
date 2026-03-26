@@ -2,44 +2,81 @@
 @{
     ViewData["Title"] = "Главная страница";
 }
+@inject Microsoft.Extensions.Configuration.IConfiguration Configuration
 
 <!-- Блок: обложка -->
 <div class="section jarallax" style="background-image:url('frontend/assets/images/background.png')">
     <div class="container py-5">
         <div class="row">
             <div class="col-lg-8 mx-auto text-center">
-                <!-- Заголовок -->
                 <h1 class="display-4 fw-bold mb-4">Карта доступности</h1>
-
-                <!-- Описание -->
                 <p class="lead mb-0">Найдите информацию о доступности городских объектов для маломобильных групп населения</p>
-
-                <!-- Кнопки действий -->
-                <div class="clearfix mt-5">
-                    <a href="#objects" class="btn btn-primary btn-pill scroll-to mx-2">
-                        <i class="fi fi-search me-2"></i>Найти объекты
-                    </a>
-                    <a href="#map" class="btn btn-outline-light btn-pill scroll-to mx-2" style="border-color: var(--bs-primary); color: var(--bs-primary)">
-                        <i class="fi fi-map me-2"></i>Открыть карту
-                    </a>
-                </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Блок: карта/список объектов -->
-<div id="objects" class="section bg-light">
+<!-- Блок: карта/список объектов и поиск-->
+<div id="objects" class="section bg-light pt-5">
     <div class="container">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2 class="h1 fw-bold mb-0">Объекты</h2>
-            <div class="btn-group" role="group">
-                <button type="button" class="btn btn-outline-primary active" data-view="list">
-                    <i class="fi fi-list"></i> Список
-                </button>
-                <button type="button" class="btn btn-outline-primary" data-view="map">
-                    <i class="fi fi-map"></i> Карта
-                </button>
+
+        <!-- Фильтры и поиск -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body p-4">
+                <form method="get" class="row g-3" id="filterForm" action="@Url.Action("Index", "Home")">
+                    <div class="col-md-12">
+                        <label class="form-label">Поиск по названию или адресу</label>
+                        <input type="text" name="searchTerm" value="@ViewBag.SearchTerm" class="form-control" placeholder="Название или адрес...">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Доступность</label>
+                        <select name="accessibility" class="form-select">
+                            <option value="">Любая доступность</option>
+                            <option value="wheelchairs" selected="@(ViewBag.AccessibilityFilter == "wheelchairs")">Для людей, передвигающихся на креслах-колясках</option>
+                            <option value="blind" selected="@(ViewBag.AccessibilityFilter == "blind")">Для людей с нарушениями зрения</option>
+                            <option value="deaf" selected="@(ViewBag.AccessibilityFilter == "deaf")">Для людей с нарушениями слуха</option>
+                            <option value="speech" selected="@(ViewBag.AccessibilityFilter == "speech")">Для людей с нарушениями речи</option>
+                            <option value="mobility" selected="@(ViewBag.AccessibilityFilter == "mobility")">Для людей с нарушениями опорно-двигательного аппарата</option>
+                            <option value="intellectual" selected="@(ViewBag.AccessibilityFilter == "intellectual")">Для людей с умственными нарушениями</option>
+                            <option value="autism" selected="@(ViewBag.AccessibilityFilter == "autism")">Для людей с нарушениями поведения и общения</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Тип объекта</label>
+                        <select name="objectType" class="form-select">
+                            <option value="">Все типы</option>
+                            @if (ViewBag.ObjectTypes != null)
+                            {
+                                @foreach (var type in ViewBag.ObjectTypes)
+                                {
+                                    <option value="@type" selected="@(ViewBag.ObjectTypeFilter == type)">@type</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                    <div class="col-12 text-center mt-3">
+                        <button type="submit" class="btn btn-primary btn-pill px-5 ms-3">
+                            Найти
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary btn-pill px-5 ms-3" id="resetBtn">
+                            Сбросить
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Скрытие карты -->
+        <div class="text-end mb-3">
+            <a href="#" id="toggleMapBtn" class="text-decoration-none">
+                <i class="fi fi-map me-2"></i>Скрыть карту
+            </a>
+        </div>
+
+        <!-- Карта -->
+        <div id="map-container" class="row" style="display: block;">
+            <div class="col-12">
+                <div id="map" style="height: 500px; width: 100%; border-radius: 12px; margin-bottom: 30px;"></div>
             </div>
         </div>
 
@@ -48,18 +85,19 @@
             <div class="col-12">
                 @if (Model != null && Model.Any())
                 {
-                    @foreach (var obj in Model)
+                    foreach (var obj in Model)
                     {
-                        <div class="card mb-3">
+                        <div class="card mb-3 object-card" data-object-id="@obj.IdObject" style="display: block; transition: all 0.2s ease;">
                             <div class="card-body">
                                 <h5 class="card-title mb-2">@obj.Name</h5>
-                                <p class="card-text text-muted">
-                                    <i class="fi fi-pin-2"></i> @obj.Address<br>
+                                <p class="card-text text-muted mb-3">
                                     <span class="badge rounded-pill bg-primary text-white px-4 mb-2">
-                                        <i class="fi fi-arrow-end"></i>@obj?.ObjectType?.NameObjectType
-                                    </span>
+                                        @obj?.ObjectType?.NameObjectType
+                                    </span> <br>
+                                    <i class="fi fi-pin-2"></i> @obj.Address
                                 </p>
-                                <div class="d-flex flex-wrap gap-2 mb-3">
+
+                                <div class="d-flex flex-wrap gap-2 mb-2">
                                     @if (obj.Wheelchairs)
                                     {
                                         <span class="badge rounded-pill bg-success">На креслах-колясках</span>
@@ -70,11 +108,11 @@
                                     }
                                     @if (obj.DeafAccess)
                                     {
-                                        <span class="badge rounded-pill bg-warning ">С нарушениями слуха</span>
+                                        <span class="badge rounded-pill bg-warning">С нарушениями слуха</span>
                                     }
                                     @if (obj.SpeechAccess)
                                     {
-                                        <span class="badge rounded-pill bg-primary-soft ">С нарушениями речи</span>
+                                        <span class="badge rounded-pill bg-primary-soft">С нарушениями речи</span>
                                     }
                                     @if (obj.MobilityAccess)
                                     {
@@ -86,9 +124,10 @@
                                     }
                                     @if (obj.AutismAccess)
                                     {
-                                        <span class="badge rounded-pill bg-info">С нарушениями поведения и общения </span>
+                                        <span class="badge rounded-pill bg-info">С нарушениями поведения и общения</span>
                                     }
                                 </div>
+
                                 <div class="d-flex justify-content-between align-items-center">
                                     <!-- Показ звезд -->
                                     <div>
@@ -117,9 +156,11 @@
                                         </span>
                                         <span class="ms-2">@obj.ScoreObject.ToString("F1")</span>
                                     </div>
-                                    <a asp-controller="Object" asp-action="Full" asp-route-id="@obj.IdObject" class="btn btn-sm btn-primary">
-                                        Подробнее
-                                    </a>
+                                    <div class="d-flex gap-2 ms-4 align-items-center">
+                                        <a asp-controller="Object" asp-action="Full" asp-route-id="@obj.IdObject" class="btn btn-sm btn-outline-primary btn-pill">
+                                            Подробнее
+                                        </a>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -133,120 +174,187 @@
                 }
             </div>
         </div>
-
-        <!-- Карта -->
-        <div id="map-container" class="row d-none">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-body text-center py-5">
-                       
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
 </div>
-<!-- переключение между списком и картой -->
-<script>
-    document.querySelectorAll('[data-view]').forEach(button => {
-        button.addEventListener('click', function() {
-            const view = this.getAttribute('data-view');
 
-            document.querySelectorAll('[data-view]').forEach(btn => {
-                btn.classList.remove('active');
+@section Scripts {
+    <script src="https://api-maps.yandex.ru/2.1/?apikey=@Configuration["YandexMaps:ApiKey"]&lang=ru_RU"></script>
+    <script>
+        let map;
+        let placemarks = [];
+        let selectedObjectId = null;
+        let selectedPlacemark = null; 
+        const mapObjects = @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(ViewBag.MapObjects));
+
+        // Выделение карточки объекта всписке
+        function highlightObjectCard(objectId) 
+        {
+            document.querySelectorAll('.object-card').forEach(card => {
+                card.classList.remove('border', 'border-primary', 'shadow-sm');
+                card.style.border = '';
             });
-            this.classList.add('active');
 
-            if (view === 'list') {
-                document.getElementById('objects-container').classList.remove('d-none');
-                document.getElementById('map-container').classList.add('d-none');
-            } else {
-                document.getElementById('objects-container').classList.add('d-none');
-                document.getElementById('map-container').classList.remove('d-none');
+            const selectedCard = document.querySelector(`.object-card[data-object-id="${objectId}"]`);
+            if (selectedCard) 
+            {
+                selectedCard.classList.add('border', 'border-primary', 'shadow-sm');
+                selectedCard.style.border = '2px solid var(--bs-primary)';
             }
-        });
+        }
+
+        // Изменения маркера
+        function updatePlacemark(objectId) 
+        {
+            placemarks.forEach(placemark => {
+                if (placemark.options) 
+                {
+                    placemark.options.set('preset', 'islands#redDotIcon');
+                }
+            });
+
+            if (objectId) 
+            {
+                const selectedPlacemarkIndex = placemarks.findIndex((p, index) => {
+                    const obj = mapObjects[index];
+                    return obj && obj.IdObject === objectId;
+                });
+
+                if (selectedPlacemarkIndex !== -1 && placemarks[selectedPlacemarkIndex]) 
+                {
+                    placemarks[selectedPlacemarkIndex].options.set('preset', 'islands#redCircleDotIcon');
+                    selectedPlacemark = placemarks[selectedPlacemarkIndex];
+                }
+            } 
+            else 
+            {
+                selectedPlacemark = null;
+            }
+        }
+
+        // Инициализация карты
+        function initMap() {
+            const defaultCenter = [59.9343, 30.3351];
+            let center = defaultCenter;
+            let zoom = 10;
+
+            map = new ymaps.Map('map', {
+                center: center,
+                zoom: zoom,
+                controls: ['zoomControl', 'fullscreenControl', 'geolocationControl']
+            });
+
+            addPlacemarks();
+        }
+
+        // Добавление маркеров на карту
+        function addPlacemarks() 
+        {
+            placemarks.forEach(placemark => {
+                map.geoObjects.remove(placemark);
+            });
+            placemarks = [];
+
+            if (!mapObjects || mapObjects.length === 0) return;
+
+            mapObjects.forEach((obj, index) => 
+            {
+                const placemark = new ymaps.Placemark(
+                    [obj.Latitude, obj.Longitude],
+                    {}, 
+                    {
+                        preset: 'islands#redDotIcon',
+                        draggable: false,
+                        hasBalloon: false, 
+                        hideIconOnBalloonOpen: false
+                    }
+                );
+
+                //  фильтрация списка при клике на маркер
+                placemark.events.add('click', function() {
+                    filterObjectsByMarker(obj.IdObject);
+                    map.setCenter([obj.Latitude, obj.Longitude], 15);
+                });
+
+                map.geoObjects.add(placemark);
+                placemarks.push(placemark);
+            });
+        }
+
+        // Фильтрация списка объектов по клику на маркер
+        function filterObjectsByMarker(objectId) 
+        {
+            selectedObjectId = objectId; // id выбранного объекта            
+
+            const allCards = document.querySelectorAll('.object-card'); // все карточки
+
+            allCards.forEach(card => {
+                card.style.display = 'block'; // показать
+            });
+
+            highlightObjectCard(objectId); // нужная карточка с обводкой
+            updatePlacemark(objectId); // изменение маркера
+
+            // скролл к выбранной карточке
+            const selectedCard = document.querySelector(`.object-card[data-object-id="${objectId}"]`);
+            if (selectedCard) 
+            {
+                selectedCard.scrollIntoView({ behavior: 'smooth', block: 'start' }); 
+            }
+        }     
+
+        // Функция для переключения видимости карты (кнопка скрыть карту)
+        function toggleMapVisibility() 
+        {
+            const mapContainer = document.getElementById('map-container');
+            const toggleBtn = document.getElementById('toggleMapBtn');
+
+            if (mapContainer.style.display === 'none') 
+            {
+                mapContainer.style.display = 'block';
+                toggleBtn.innerHTML = '<i class="fi fi-map me-2"></i>Скрыть карту';
+
+                if (map) 
+                {
+                    setTimeout(() => {
+                        map.container.fitToViewport();
+                    }, 100);
+                }
+            } 
+            else 
+            {
+                mapContainer.style.display = 'none';
+                toggleBtn.innerHTML = '<i class="fi fi-map me-2"></i>Открыть карту';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() 
+        {
+            // Инициализация карты
+            ymaps.ready(function() {
+                initMap();
+            });
+
+            // Обработчик кнопки Скрыть карту
+            const toggleBtn = document.getElementById('toggleMapBtn');
+            if (toggleBtn) 
+            {
+                toggleBtn.addEventListener('click', toggleMapVisibility);
+            }
+
+            // Обработчик кнопки Сбросить
+            const resetBtn = document.getElementById('resetBtn');
+            if (resetBtn)
+            {
+                resetBtn.addEventListener('click', function() {
+
+                document.querySelector('input[name="searchTerm"]').value = '';
+                document.querySelector('select[name="objectType"]').value = '';
+                document.querySelector('select[name="accessibility"]').value = '';
+
+                const form = document.getElementById('filterForm');
+                form.submit();
+            });
+        }
     });
-</script>
-
-<!-- Блок: поиск объектов -->
-<div id="search" class="section bg-white">
-    <div class="container">
-        <h2 class="h1 fw-bold text-center mb-5">Поиск объектов</h2>
-
-        <div class="row">
-            <div class="col-lg-8 mx-auto">
-                <!-- Форма поиска -->
-                <div class="card shadow-lg border-0">
-                    <div class="card-body p-4">
-                        <form id="searchForm" class="row g-4">
-                            <!-- Поле поиска -->
-                            <div class="col-12">
-                                <label for="searchQuery" class="form-label">Поиск по названию или адресу</label>
-                                <div class="input-group">
-                                    <span class="input-group-text bg-transparent border-end-0">
-                                        <i class="fi fi-search"></i>
-                                    </span>
-                                    <input type="text"
-                                           class="form-control"
-                                           id="searchQuery"
-                                           placeholder="Введите название объекта или адрес...">
-                                </div>
-                            </div>
-
-                            <!-- Тип объекта -->
-                            <div class="col-12 mt-3">
-                                <label for="objectType" class="form-label">Тип объекта</label>
-                                <select class="form-select" id="objectType">
-                                    <option value="">Все типы</option>
-                                    <option value="mediko_socialnaya_ekspertiza">Медико-социальная экспертиза</option>
-                                    <option value="socialnaya_zaschita_naseleniya">Социальная защита населения</option>
-                                    <option value="zdravoohranenie">Здравоохранение</option>
-                                    <option value="obrazovanie">Образование</option>
-                                    <option value="inklyuzivny_detskiy_otdyh">Инклюзивный детский отдых</option>
-                                    <option value="kultura">Культура</option>
-                                    <option value="fizicheskaya_kultura_i_sport">Физическая культура и спорт</option>
-                                    <option value="sfr">СФР</option>
-                                    <option value="pfr">ПФР</option>
-                                    <option value="fss">ФСС</option>
-                                    <option value="nalogovaya_sluzhba">Налоговая служба</option>
-                                    <option value="svyaz_i_informaciya">Связь и информация</option>
-                                    <option value="zhilye_zdaniya_i_pomescheniya">Жилые здания и помещения</option>
-                                    <option value="potrebitelskiy_rynok_i_sfera_uslug">Потребительский рынок и сфера услуг</option>
-                                    <option value="mesta_prilozheniya_truda">Места приложения труда</option>
-                                    <option value="dorozhno_transportnye">Дорожно-транспортные</option>
-                                    <option value="administrativnye_organizacii_i_uchrezhdeniya">Административные организации и учреждения</option>
-                                    <option value="molodezhnaya_politika">Молодежная политика</option>
-                                </select>
-                            </div>
-
-                            <!-- Доступность -->
-                            <div class="col-12 mt-3">
-                                <label for="accessibility" class="form-label">Доступность</label>
-                                <select class="form-select" id="accessibility">
-                                    <option value="">Любая доступность</option>
-                                    <option value="wheelchairs">Для людей, передвигающихся на креслах-колясках</option>
-                                    <option value="blind_access">Для людей с нарушениями зрения</option>
-                                    <option value="deaf_access">Для людей с нарушениями слуха</option>
-                                    <option value="speech_access">Для людей с нарушениями речи</option>
-                                    <option value="mobility_access">Для людей с нарушениями опорно-двигательного аппарата</option>
-                                    <option value="intellectual_access">Для людей с умственными нарушениями</option>
-                                    <option value="autism_access">Для людей с нарушениями поведения и общения</option>
-                                </select>
-                            </div>
-
-                            <!-- Кнопки -->
-                            <div class="col-12 text-center mt-4">
-                                <button type="submit" class="btn btn-primary btn-pill scroll-to mx-2 px-5 ms-3">
-                                    Найти
-                                </button>
-                                <button type="reset" class="btn btn-outline-secondary btn-pill scroll-to mx-2 px-5 ms-3">
-                                    Сбросить
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+    </script>
+}
