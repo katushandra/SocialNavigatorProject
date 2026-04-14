@@ -32,7 +32,7 @@
                         @if (User.IsInRole("Moderator") || User.IsInRole("Admin"))
                         {
                             <a asp-controller="Moderator" asp-action="ModeratorPanel">
-                                <button type="submit"class="btn btn-outline-warning btn-pill scroll-to w-100">
+                                <button type="submit" class="btn btn-outline-warning btn-pill scroll-to w-100">
                                     Панель модератора
                                 </button>
                             </a>
@@ -120,8 +120,8 @@
                         </div>
 
                         <div class="text-center mt-4">
-                            <button type="submit" class="btn btn-outline-primary btn-pill">
-                                <i class="fi fi-save me-2"></i>Сохранить изменения
+                            <button type="submit" class="btn btn-primary btn-pill">
+                                Сохранить изменения
                             </button>
                         </div>
                     </form>

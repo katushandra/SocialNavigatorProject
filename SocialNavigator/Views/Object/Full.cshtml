@@ -9,7 +9,7 @@
     var user = await UserManager.GetUserAsync(User);
     var hasUserReviewed = Model.Reviews?.Any(r => r.AppUser?.IdUser == user?.Id) ?? false;
 }
-
+@inject Microsoft.Extensions.Configuration.IConfiguration Configuration
 <!-- Блок: обложка -->
 <div class="section jarallax" style="background-image:url('/frontend/assets/images/background.png')">
     <div class="container py-5">
@@ -21,7 +21,7 @@
                 <!-- Тип объекта -->
                 <div class="mb-3">
                     <span class="badge bg-primary text-white px-4 py-2 rounded-pill">
-                        <i class="fi fi-arrow-end me-2"></i>@obj?.ObjectType?.NameObjectType
+                        @obj?.ObjectType?.NameObjectType
                     </span>
                 </div>
 
@@ -294,11 +294,11 @@
                         <div class="card-body p-4">
                             <h5 class="fw-bold mb-3">
                                 <i class="fi fi-map text-primary me-2"></i>Местоположение
-                            </h5>
+                            </h5>                           
                             <p class="mb-2">
-                                <i class="fi fi-pin-2 me-2 text-muted"></i>@obj.Address
+                               @obj.Address
                             </p>
-
+                            <div id="map" style="height: 300px; width: 100%; border-radius: 0 0 8px 8px;"></div>
                         </div>
                     </div>
                 }
@@ -339,8 +339,62 @@
 </div>
 
 @section Scripts {
+    <script src="https://api-maps.yandex.ru/2.1/?apikey=@Configuration["YandexMaps:ApiKey"]&lang=ru_RU"></script>
     <script>
+        let map;
+        let placemark;
+
+        @{
+            var hasCoordinates = obj?.Location != null;
+
+            string lat = "59.9343";
+            string lng = "30.3351";
+            int zoom = 12;
+
+            if (hasCoordinates)
+            {
+                 try
+                 {
+                     lat = obj.Location.Y.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                     lng = obj.Location.X.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                     zoom = 17;
+                 }
+                 catch
+                 {
+                     hasCoordinates = false;
+                 }
+            }
+        }
+
+        // Инициализация карты
+        function initMap()
+        {
+            const defaultCenter = [parseFloat(@lat), parseFloat(@lng)];
+
+            map = new ymaps.Map('map', {
+                center: defaultCenter,
+                zoom: @zoom,
+                controls: ['zoomControl', 'fullscreenControl']
+            });
+
+            @if (hasCoordinates)
+            {
+            <text>
+                const coords = [parseFloat(@lat), parseFloat(@lng)];
+
+                placemark = new ymaps.Placemark(coords, {}, {
+                    preset: 'islands#redDotIcon',
+                    draggable: true
+                });
+                map.geoObjects.add(placemark);
+                </text>
+            }
+        }
+
         $(document).ready(function() {
+            // Инициализация карты
+            ymaps.ready(initMap);
+
             // Инициализация счетчиков символов
             initCharacterCounters();
 

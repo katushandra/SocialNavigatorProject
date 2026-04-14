@@ -21,10 +21,8 @@
     <div class="container py-5">
         <div class="row">
             <div class="col-lg-8 mx-auto">
-                <h2 class="h1 fw-bold mb-4">Что такое "Социальный навигатор"?</h2>
-
                 <p class="fs-5 mb-4">
-                    "Социальный навигатор" — это интерактивная карта доступности городских объектов для людей с ограниченными возможностями здоровья и маломобильных групп населения.
+                    <strong>Социальный навигатор</strong> — это интерактивная карта доступности городских объектов для людей с ограниченными возможностями здоровья и маломобильных групп населения.
                 </p>
 
                 <div class="row mt-5">
@@ -33,7 +31,9 @@
                             <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
                                 <i class="fi fi-map fs-2"></i>
                             </div>
-                            <h4 class="h5 fw-bold">Карта объектов</h4>
+                            <p class="fs-5 mb-2">
+                                <strong>Карта объектов</strong>
+                            </p>
                             <p class="text-muted">Интерактивная карта с отображением доступных городских объектов</p>
                         </div>
                     </div>
@@ -43,7 +43,9 @@
                             <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
                                 <i class="fi fi-squared-info fs-2"></i>
                             </div>
-                            <h4 class="h5 fw-bold">Детальная информация</h4>
+                            <p class="fs-5 mb-2">
+                                <strong>Детальная информация</strong>
+                            </p>
                             <p class="text-muted">Подробные сведения о доступности объектов для разных категорий</p>
                         </div>
                     </div>
@@ -53,7 +55,9 @@
                             <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
                                 <i class="fi fi-users fs-2"></i>
                             </div>
-                            <h4 class="h5 fw-bold">Сообщество</h4>
+                            <p class="fs-5 mb-2">
+                                <strong>Сообщество</strong>
+                            </p>
                             <p class="text-muted">Возможность добавлять объекты и оставлять отзывы</p>
                         </div>
                     </div>
@@ -68,21 +72,29 @@
     <div class="container py-5">
         <div class="row">
             <div class="col-lg-8 mx-auto">
-                <h2 class="h1 fw-bold mb-4">Как работать с картой?</h2>
+                <h2 class="text-center h1 fw-bold mb-4">Как работать с картой?</h2>
 
                 <div class="accordion" id="howToWorkAccordion">
                     <div class="accordion-item">
                         <h3 class="accordion-header">
                             <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne">
-                                <span class="me-3">1</span> Поиск объектов
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                                         style="width: 32px; height: 32px;">
+                                        <span class="fw-bold">1</span>
+                                    </div>
+                                    <strong>Поиск объектов</strong>
+                                </div>
                             </button>
                         </h3>
                         <div id="collapseOne" class="accordion-collapse collapse show" data-bs-parent="#howToWorkAccordion">
                             <div class="accordion-body">
-                                <p>Делайте </p>
+                                <p>На <a href="/">главной странице</a> вы можете найти объекты несколькими способами:</p>
                                 <ul>
-                                    <li>Вот это</li>
-                                    <li>Вот это</li>
+                                    <li>Поисковая строка.<span class="text-muted"> Введите название или адрес объекта.</span></li>
+                                    <li>Фильтр по типу объекта.<span class="text-muted">  Выберите интересующую категорию.</span></li>
+                                    <li>Фильтр по доступностию.<span class="text-muted">  Отметьте нужную категорию, и карта покажет только подходящие объекты.</span></li>
+                                    <li>Карта.<span class="text-muted"> Перемещайтесь по карте и кликайте на маркеры для просмотра информации об объекте.</span></li>
                                 </ul>
                             </div>
                         </div>
@@ -91,15 +103,23 @@
                     <div class="accordion-item">
                         <h3 class="accordion-header">
                             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo">
-                                <span class="me-3">2</span> Просмотр информации
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                                         style="width: 32px; height: 32px;">
+                                        <span class="fw-bold">2</span>
+                                    </div>
+                                    <strong>Просмотр информации</strong>
+                                </div>
                             </button>
                         </h3>
                         <div id="collapseTwo" class="accordion-collapse collapse" data-bs-parent="#howToWorkAccordion">
                             <div class="accordion-body">
-                                <p>Делайте </p>
+                                <p>Для каждого объекта предусмотрена страница с подробной информацией - карточка объекта, где можно увидеть:</p>
                                 <ul>
-                                    <li>Вот это</li>
-                                    <li>Вот это</li>
+                                    <li>Описание объекта и схему проезда.</li>
+                                    <li>Все категории доступности, которые были отмечены для этого места.</li>
+                                    <li>Средний рейтинг и отзывы других пользователей.</li>
+                                    <li>Точный адрес и местоположение на карте.</li>
                                 </ul>
                             </div>
                         </div>
@@ -108,16 +128,25 @@
                     <div class="accordion-item">
                         <h3 class="accordion-header">
                             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree">
-                                <span class="me-3">3</span> Добавление объектов
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                                         style="width: 32px; height: 32px;">
+                                        <span class="fw-bold">3</span>
+                                    </div>
+                                    <strong>Добавление объектов</strong>
+                                </div>
                             </button>
                         </h3>
                         <div id="collapseThree" class="accordion-collapse collapse" data-bs-parent="#howToWorkAccordion">
                             <div class="accordion-body">
-                                <p>Делайте </p>
+                                <p>Чтобы добавить новый объект на карту, необходимо <a href="/Account/Login">войти</a> в свой аккаунт и нажать кнопку "Добавить объект".Заполнть поля формы:</p>
                                 <ul>
-                                    <li>Вот это</li>
-                                    <li>Вот это</li>
+                                    <li>Название и адрес объекта (с возможностью поиска на карте).</li>
+                                    <li>Описание и схему проезда.</li>
+                                    <li>Тип объекта.</li>
+                                    <li>Отметить, для каких категорий маломобильности этот объект доступен.</li>
                                 </ul>
+                                <p class="mt-2">После отправки объект попадет на модерацию и после проверки будет опубликован на карте. Вы можете отслеживать статус своих объектов в разделе <a href="/Profile/MyObjects">"Мои объекты"</a>.</p>
                             </div>
                         </div>
                     </div>
@@ -125,25 +154,31 @@
                     <div class="accordion-item">
                         <h3 class="accordion-header">
                             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFour">
-                                <span class="me-3">4</span> Оставление отзывов
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                                         style="width: 32px; height: 32px;">
+                                        <span class="fw-bold">4</span>
+                                    </div>
+                                    <strong>Оставление отзывов</strong>
+                                </div>
                             </button>
                         </h3>
                         <div id="collapseFour" class="accordion-collapse collapse" data-bs-parent="#howToWorkAccordion">
                             <div class="accordion-body">
-                                <p>Делайте </p>
-                                <ul>
-                                    <li>Вот это</li>
-                                    <li>Вот это</li>
-                                </ul>
+                                <p> После посещения объекта вы можете поделиться своим опытом, перейдя на карточку объекта в блоке "Отзывы". Вы можете поставить оценку от 1 до 5 и написать комментарий.</p>
+                                <p class="mt-2">Ваш отзыв поможет другим людям лучше ориентироваться, а администраторам и модераторам проверять актуальность информации об объекте.</p>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <div class="text-center mt-5">
-                    <a href="/object/add" class="btn btn-primary btn-pill scroll-to mx-2">
-                        <i class="fi fi-plus me-2"></i>Добавить первый объект
+                    <a href="/object/add" class="btn btn-primary btn-pill mx-2">
+                        <i class="fi fi-plus me-2"></i>Добавить объект
                     </a>
+                    <a href="/" class="btn btn-outline-primary btn-pill mx-2">
+                        <i class="fi fi-map me-2"></i>Перейти к карте
+                    </a>                    
                 </div>
             </div>
         </div>
