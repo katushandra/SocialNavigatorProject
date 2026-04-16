@@ -19,7 +19,16 @@
 
     <div class="col-12 col-lg-7 d-lg-flex">
         <div class="w-100 align-self-center text-center-md text-center-xs p-2">
-            <<form asp-controller="Account" asp-action="Login" method="post" class="bs-validate p-5 py-6 rounded d-inline-block bg-white text-dark w-100 max-w-600" id="loginForm">
+            <form asp-controller="Account" asp-action="Login" method="post" class="bs-validate p-5 py-6 rounded d-inline-block bg-white text-dark w-100 max-w-600" id="loginForm">
+                
+                @if (TempData["SuccessMessage"] != null)
+                {
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        @TempData["SuccessMessage"]
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                }
+
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="returnUrl" value="@ViewData["ReturnUrl"]" />
                 
@@ -33,7 +42,7 @@
                     <div class="form-floating mb-3">
                         <input asp-for="Password" type="password" class="form-control" placeholder="Пароль" />
                         <label asp-for="Password">Пароль</label>
-                        <span asp-validation-for="Password" class="text-danger small"></span>
+                        <span asp-validation-for="Password" class="text-danger small"></span>                       
                     </div>
 
                     <a asp-controller="Account" asp-action="ForgotPassword" class="btn smaller fw-bold">

@@ -97,7 +97,7 @@
                         <input type="hidden" asp-for="Role" />
 
                         <div class="form-floating mb-3">
-                            @Html.TextBoxFor(m => m.UserCreatedAt, new { @class = "form-control", placeholder = "Дата регистрации", @readonly = "readonly", disabled = "disabled" })
+                            @Html.TextBox("UserCreatedAtFormatted", Model.UserCreatedAt.AddHours(3).ToString("dd.MM.yyyy HH:mm:ss"), new { @class = "form-control", placeholder = "Дата регистрации", @readonly = "readonly", disabled = "disabled" })
                             @Html.LabelFor(m => m.UserCreatedAt, "Дата регистрации")
                         </div>
 

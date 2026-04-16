@@ -4,6 +4,7 @@
     ViewData["Title"] = "Модерация объекта";
     var obj = Model.SocialObjectDto;
 }
+@inject Microsoft.Extensions.Configuration.IConfiguration Configuration
 
 <!-- Блок: обложка -->
 <div class="section jarallax" style="background-image:url('/frontend/assets/images/background.png')">
@@ -125,7 +126,36 @@
 
             <!-- Правая колонка -->
             <div class="col-lg-4">
-                
+
+                <!-- Местоположение -->
+                @if (!string.IsNullOrEmpty(obj?.Address))
+                {
+                    <div class="card border-0 shadow-sm mb-4">
+                        <div class="card-body p-4">
+                            <h5 class="fw-bold mb-3">
+                                <i class="fi fi-map text-primary me-2"></i>Местоположение
+                            </h5>
+                            <p class="mb-2">
+                                @obj.Address
+                            </p>
+                            <!-- Отладочная информация -->
+                            @if (obj?.Location != null)
+                            {
+                                <small class="text-muted d-block mb-2">
+                                    Координаты: @obj.Location.Y.ToString("F6"), @obj.Location.X.ToString("F6")
+                                </small>
+                            }
+                            else
+                            {
+                                <div class="alert alert-warning small py-2 mb-2">
+                                    <i class="fi fi-info-circle"></i> Координаты не указаны
+                                </div>
+                            }
+                            <div id="map" style="height: 300px; width: 100%; border-radius: 8px;"></div>
+                        </div>
+                    </div>
+                }
+
                 <!-- Для объектов на модерации кнопки  -->
                 @if (obj?.Status == Status.Pending)
                 {
@@ -209,3 +239,63 @@
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script src="https://api-maps.yandex.ru/2.1/?apikey=@Configuration["YandexMaps:ApiKey"]&lang=ru_RU"></script>
+    <script>
+        let map;
+        let placemark;
+
+        @{
+                var hasCoordinates = obj?.Location != null;
+
+                string lat = "59.9343";
+                string lng = "30.3351";
+                int zoom = 12;
+
+                if (hasCoordinates)
+                {
+                         try
+                         {
+                                 lat = obj.Location.Y.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                                 lng = obj.Location.X.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                                 zoom = 17;
+                         }
+                         catch
+                         {
+                                 hasCoordinates = false;
+                         }
+                }
+        }
+
+        // Инициализация карты
+        function initMap()
+        {
+            const defaultCenter = [parseFloat(@lat), parseFloat(@lng)];
+
+            map = new ymaps.Map('map', {
+                center: defaultCenter,
+                zoom: @zoom,
+                controls: ['zoomControl', 'fullscreenControl']
+            });
+
+            @if (hasCoordinates)
+            {
+                <text>
+                    const coords = [parseFloat(@lat), parseFloat(@lng)];
+
+                    placemark = new ymaps.Placemark(coords, {}, {
+                        preset: 'islands#redDotIcon',
+                        draggable: true
+                    });
+                    map.geoObjects.add(placemark);
+                    </text>
+            }
+        }
+
+        $(document).ready(function() {
+            // Инициализация карты
+            ymaps.ready(initMap);
+        });
+    </script>
+}
