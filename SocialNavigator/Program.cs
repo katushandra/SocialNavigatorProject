@@ -6,6 +6,7 @@ using Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using SocialNavigator.Helpers;
+using System.Reflection;
 
 public class Program
 {
@@ -61,6 +62,9 @@ public class Program
 
         builder.Services.AddAutoMapper(typeof(MappingProfile));
 
+        builder.Services.AddMediatR(options => 
+            options.RegisterServicesFromAssembly(Assembly.Load("Application"))
+        );
         #endregion
 
         var app = builder.Build();

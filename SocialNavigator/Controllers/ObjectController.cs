@@ -1,9 +1,12 @@
 ﻿using Application.Common.Interfaces;
+using Application.Handlers.Object.Commands;
+using Application.Handlers.Object.Queries;
 using AutoMapper;
 using AutoMapper.QueryableExtensions;
 using Domain.DTO;
 using Domain.Entity;
 using Domain.Entity.Enums;
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -18,15 +21,13 @@ namespace SocialNavigator.Controllers
 {
     public class ObjectController : Controller
     {
-        private readonly ILocalDbContext context;
-        private readonly IMapper mapper;
+        private readonly IMediator mediator;
         private readonly UserManager<AppUser> userManager;
         private readonly ILogger<ObjectController> logger;
 
-        public ObjectController(ILocalDbContext context, IMapper mapper, UserManager<AppUser> userManager, ILogger<ObjectController> logger)
+        public ObjectController(IMediator mediator, ILocalDbContext context, IMapper mapper, UserManager<AppUser> userManager, ILogger<ObjectController> logger)
         {
-            this.context = context;
-            this.mapper = mapper;
+            this.mediator = mediator;
             this.userManager = userManager;
             this.logger = logger;
         }
@@ -34,13 +35,12 @@ namespace SocialNavigator.Controllers
         #region Full карточка объекта
         public async Task<IActionResult> Full(Guid id, CancellationToken cancellationToken)
         {
-            var objectDetails = await context.SocialObject
-                .Include(x => x.ObjectType)
-                .Include(x => x.Reviews)
-                    .ThenInclude(r => r.User)
-                .Where(x => x.IdObject == id && x.Status == Domain.Entity.Enums.Status.Approved)
-                .ProjectTo<FullSocialObjectDto>(mapper.ConfigurationProvider)
-                .FirstOrDefaultAsync(cancellationToken);
+            var objectDetails = await mediator.Send(new GetFullQuery { Id = id }, cancellationToken);
+
+            if (objectDetails == null)
+            {
+                return NotFound();
+            }
 
             return View(objectDetails);
         }
@@ -49,11 +49,9 @@ namespace SocialNavigator.Controllers
         #region Add добавление объекта
         [Authorize]
         [HttpGet]
-        public async Task<IActionResult> Add()
+        public async Task<IActionResult> Add(CancellationToken cancellationToken)
         {
-            var objectTypes = await context.ObjectType
-                .OrderBy(x => x.Name)
-                .ToListAsync();
+            var objectTypes = await mediator.Send(new GetObjectTypesQuery(), cancellationToken);
 
             ViewBag.ObjectTypes = objectTypes;
 
@@ -71,9 +69,7 @@ namespace SocialNavigator.Controllers
                 return RedirectToAction("Login", "Account");
             }
 
-            var objectTypes = await context.ObjectType
-                .OrderBy(x => x.Name)
-                .ToListAsync(cancellationToken);
+            var objectTypes = await mediator.Send(new GetObjectTypesQuery(), cancellationToken);
             ViewBag.ObjectTypes = objectTypes;
 
             if (!ModelState.IsValid)
@@ -81,37 +77,32 @@ namespace SocialNavigator.Controllers
                 return View(model);
             }
 
-            var objectType = await context.ObjectType
-                .FirstOrDefaultAsync(x => x.IdObjectType == model.ObjectTypeId, cancellationToken);
-
-            if (objectType == null)
-            {
-                ModelState.AddModelError(nameof(model.ObjectTypeId), "Выберите тип объекта");
-                return View(model);
-            }
-
-            var socialObject = mapper.Map<SocialObject>(model);
-
+            double? latitude = null;
+            double? longitude = null;
+                     
             if (Request.Form.ContainsKey("Latitude") && Request.Form.ContainsKey("Longitude"))
             {
-                if (double.TryParse(Request.Form["Latitude"], out double latitude) &&
-                    double.TryParse(Request.Form["Longitude"], out double longitude))
+                if (double.TryParse(Request.Form["Latitude"], out double lat) &&
+                    double.TryParse(Request.Form["Longitude"], out double lng))
                 {
-                    var point = new Point(longitude, latitude)  // x - долгота, y - широта
-                    {
-                        SRID = 4326
-                    };
-                    socialObject.Location = point;
+                    latitude = lat;
+                    longitude = lng;
                 }
             }
 
-            socialObject.CreatorId = user.Id;
+            var result = await mediator.Send(new AddCommand
+            {
+                Model = model,
+                UserId = user.Id,
+                Latitude = latitude,
+                Longitude = longitude
+            }, cancellationToken);
 
-            context.SocialObject.Add(socialObject);
-            await context.SaveChangesAsync(cancellationToken);
-
-            logger.LogInformation("Пользователь {UserName} добавил новый объект {ObjectName} id - {ObjectId}",
-                user.UserName, model.Name, socialObject.IdObject);
+            if (!result.Succeeded)
+            {
+                ModelState.AddModelError(nameof(model.ObjectTypeId), result.Error ?? "Ошибка при добавлении объекта");
+                return View(model);
+            }
 
             TempData["SuccessMessage"] = "Объект успешно добавлен и отправлен на модерацию!";
             return RedirectToAction("MyObjects", "Profile");
@@ -130,27 +121,26 @@ namespace SocialNavigator.Controllers
                 return RedirectToAction("Login", "Account");
             }
 
-            var socialObject = await context.SocialObject
-                .FirstOrDefaultAsync(x => x.IdObject == id && x.CreatorId == user.Id);
+            var result = await mediator.Send(new DeleteObjectCommand
+            {
+                Id = id,
+                UserId = user.Id
+            });
 
-            if (socialObject == null)
+            if (result.NotFound)
             {
                 return NotFound();
             }
 
-            if (socialObject.Status != Status.Pending)
+            if (result.InvalidStatus)
             {
-                TempData["ErrorMessage"] = "Удалить можно только объекты со статусом 'На модерации'";
-                return RedirectToAction("MyObjects", "Profile");
+                TempData["ErrorMessage"] = result.Error;
+            }
+            else if (result.Success)
+            {
+                TempData["SuccessMessage"] = "Объект успешно удален";
             }
 
-            context.SocialObject.Remove(socialObject);
-            await context.SaveChangesAsync();
-
-            logger.LogInformation("Пользователь {UserName} удалил объект {ObjectId}",
-                user.UserName, id);
-
-            TempData["SuccessMessage"] = "Объект успешно удален";
             return RedirectToAction("MyObjects", "Profile");
         }
         #endregion
@@ -165,35 +155,20 @@ namespace SocialNavigator.Controllers
                 return RedirectToAction("Login", "Account");
             }
 
-            var socialObject = await context.SocialObject
-                .Include(x => x.ObjectType)
-                .FirstOrDefaultAsync(x => x.IdObject == id && x.CreatorId == user.Id);
+            var editDto = await mediator.Send(new GetForEditQuery
+            {
+                Id = id,
+                UserId = user.Id
+            });
 
-            if (socialObject == null)
+            if (editDto == null)
             {
                 return NotFound();
             }
-            
-            if (socialObject.Status != Status.Rejected)
-            {
-                TempData["ErrorMessage"] = "Редактировать можно только отклоненные объекты";
-                return RedirectToAction("MyObjects", "Profile");
-            }
 
-            var editDto = mapper.Map<AddSocialObjectDto>(socialObject);
-            var objectTypes = await context.ObjectType
-                .OrderBy(x => x.Name)
-                .Select(x => new { x.IdObjectType, x.Name })
-                .ToListAsync();
-
+            var objectTypes = await mediator.Send(new GetObjectTypesQuery());
             ViewBag.ObjectTypes = objectTypes;
             ViewBag.ObjectId = id;
-
-            if (socialObject.Location != null)
-            {
-                ViewBag.Latitude = socialObject.Location.Y;
-                ViewBag.Longitude = socialObject.Location.X;
-            }
 
             return View("Edit", editDto);
         }
@@ -211,52 +186,49 @@ namespace SocialNavigator.Controllers
             if (!ModelState.IsValid)
             {
                 ViewBag.ObjectId = id;
-                var objectTypes = await context.ObjectType
-                    .OrderBy(x => x.Name)
-                    .ToListAsync();
+                var objectTypes = await mediator.Send(new GetObjectTypesQuery());
                 ViewBag.ObjectTypes = objectTypes;
                 return View("Edit", model);
             }
 
-            var socialObject = await context.SocialObject
-                .FirstOrDefaultAsync(x => x.IdObject == id && x.CreatorId == user.Id);
-
-            if (socialObject == null)
-            {
-                return NotFound();
-            }
-            
-            if (socialObject.Status != Status.Rejected)
-            {
-                TempData["ErrorMessage"] = "Редактировать можно только отклоненные объекты";
-                return RedirectToAction("MyObjects", "Profile");
-            }
+            double? latitude = null;
+            double? longitude = null;
 
             if (Request.Form.ContainsKey("Latitude") && Request.Form.ContainsKey("Longitude"))
             {
-                if (double.TryParse(Request.Form["Latitude"], out double latitude) &&
-                    double.TryParse(Request.Form["Longitude"], out double longitude))
+                if (double.TryParse(Request.Form["Latitude"], out double lat) &&
+                    double.TryParse(Request.Form["Longitude"], out double lng))
                 {
-                    var point = new Point(longitude, latitude)  // x - долгота, y - широта
-                    {
-                        SRID = 4326
-                    };
-                    socialObject.Location = point;
+                    latitude = lat;
+                    longitude = lng;
                 }
             }
 
-            mapper.Map(model, socialObject);
+            var result = await mediator.Send(new EditObjectCommand
+            {
+                Id = id,
+                Model = model,
+                UserId = user.Id,
+                Latitude = latitude,
+                Longitude = longitude
+            });
 
-            socialObject.Status = Status.Pending;
-            socialObject.EditorId = user.Id;
-            socialObject.EditedAt = DateTime.UtcNow;
+            if (result.NotFound)
+            {
+                return NotFound();
+            }
 
-            await context.SaveChangesAsync();
+            if (result.InvalidStatus)
+            {
+                TempData["ErrorMessage"] = result.Error;
+                return RedirectToAction("MyObjects", "Profile");
+            }
 
-            logger.LogInformation("Пользователь {UserName} отредактировал объект {ObjectId}",
-                user.UserName, id);
+            if (result.Succeeded)
+            {
+                TempData["SuccessMessage"] = "Объект отправлен на повторную модерацию";
+            }
 
-            TempData["SuccessMessage"] = "Объект отправлен на повторную модерацию";
             return RedirectToAction("MyObjects", "Profile");
         }
         #endregion
@@ -275,42 +247,30 @@ namespace SocialNavigator.Controllers
 
             if (!ModelState.IsValid)
             {
-                var fullObjectDto = await context.SocialObject
-                   .Include(x => x.ObjectType)
-                   .Include(x => x.Reviews)
-                       .ThenInclude(r => r.User)
-                   .Where(x => x.IdObject == model.ObjectId && x.Status == Status.Approved)
-                   .ProjectTo<FullSocialObjectDto>(mapper.ConfigurationProvider)
-                   .FirstOrDefaultAsync(cancellationToken);
-
+                var fullObjectDto = await mediator.Send(new GetFullQuery { Id = model.ObjectId }, cancellationToken);
                 if (fullObjectDto == null)
                 {
                     return NotFound();
                 }
 
-                // Заполняем данные из формы в свойство NewReview
                 fullObjectDto.AddReview = model;
-
-                // Добавляем объекты в ViewBag для выпадающих списков, если они нужны
-                var objectTypes = await context.ObjectType
-                    .OrderBy(x => x.Name)
-                    .ToListAsync();
+                var objectTypes = await mediator.Send(new GetObjectTypesQuery(), cancellationToken);
                 ViewBag.ObjectTypes = objectTypes;
 
                 return View("Full", fullObjectDto);
             }
 
-            var review = mapper.Map<Review>(model);
-            review.UserId = user.Id;
+            var result = await mediator.Send(new AddReviewCommand
+            {
+                Model = model,
+                UserId = user.Id
+            }, cancellationToken);
 
-            context.Review.Add(review);
-            await context.SaveChangesAsync(cancellationToken);
-
-            await UpdateObjectScore(model.ObjectId, cancellationToken);
-            await context.SaveChangesAsync(cancellationToken);
-
-            logger.LogInformation("Пользователь {UserName} добавил отзыв на объект {ObjectId}",
-                user.UserName, model.ObjectId);
+            if (!result.Succeeded)
+            {
+                TempData["ErrorMessage"] = result.Error ?? "Ошибка при добавлении отзыва";
+                return RedirectToAction(nameof(Full), new { id = model.ObjectId });
+            }
 
             TempData["SuccessMessage"] = "Отзыв успешно добавлен";
             return RedirectToAction(nameof(Full), new { id = model.ObjectId });
@@ -329,41 +289,20 @@ namespace SocialNavigator.Controllers
                 return RedirectToAction("Login", "Account");
             }
 
-            var review = await context.Review
-                .FirstOrDefaultAsync(x => x.IdReview == id && x.UserId == user.Id, cancellationToken);
+            var result = await mediator.Send(new DeleteReviewCommand
+            {
+                Id = id,
+                ObjectId = objectId,
+                UserId = user.Id
+            }, cancellationToken);
 
-            if (review == null)
+            if (result.NotFound)
             {
                 return NotFound();
             }
 
-            context.Review.Remove(review);
-
-            await UpdateObjectScore(objectId, cancellationToken);
-
-            await context.SaveChangesAsync(cancellationToken);
-
-            logger.LogInformation("Пользователь {UserName} удалил отзыв {ReviewId}",
-                user.UserName, id);
-
             TempData["SuccessMessage"] = "Отзыв удален";
             return RedirectToAction(nameof(Full), new { id = objectId });
-        }
-
-        // Обновление средней оценки объекта
-        private async Task UpdateObjectScore(Guid objectId, CancellationToken cancellationToken)
-        {
-            var averageScore = await context.Review
-                .Where(x => x.ObjectId == objectId)
-                .AverageAsync(x => (decimal?)x.Score, cancellationToken) ?? 0;
-
-            var socialObject = await context.SocialObject
-                .FirstOrDefaultAsync(x => x.IdObject == objectId, cancellationToken);
-
-            if (socialObject != null)
-            {
-                socialObject.ScoreObject = Math.Round(averageScore, 1);
-            }
         }
         #endregion
     }
