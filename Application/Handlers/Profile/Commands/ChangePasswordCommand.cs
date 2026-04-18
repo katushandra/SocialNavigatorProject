@@ -40,35 +40,57 @@ namespace Application.Handlers.Profile.Commands
 
         public async Task<ChangePasswordResult> Handle(ChangePasswordCommand request, CancellationToken cancellationToken)
         {
-            var vewResult = new ChangePasswordResult();
+            var viewResult = new ChangePasswordResult();
 
             var user = await userManager.FindByIdAsync(request.UserId.ToString());
             if (user == null)
             {
-                vewResult.Succeeded = false;
-                return vewResult;
+                viewResult.Succeeded = false;
+                return viewResult;
             }
 
-            var checkPassword = await userManager.CheckPasswordAsync(user, request.Model.CurrentPassword);
-            if (!checkPassword)
+            if (string.IsNullOrWhiteSpace(request.Model.CurrentPassword))
             {
-                vewResult.CurrentPasswordInvalid = true;
-                vewResult.Errors.Add("Неверный текущий пароль");
-                return vewResult;
+                viewResult.CurrentPasswordInvalid = true;
+                viewResult.Errors.Add("Текущий пароль обязателен");
+            }
+            else
+            {
+                var checkPassword = await userManager.CheckPasswordAsync(user, request.Model.CurrentPassword);
+                if (!checkPassword)
+                {
+                    viewResult.CurrentPasswordInvalid = true;
+                    viewResult.Errors.Add("Неверный текущий пароль");
+                }
             }
 
-            if (request.Model.CurrentPassword == request.Model.NewPassword)
+            if (string.IsNullOrWhiteSpace(request.Model.NewPassword))
             {
-                vewResult.SamePassword = true;
-                vewResult.Errors.Add("Новый пароль должен отличаться от текущего");
-                return vewResult;
+                viewResult.Errors.Add("Новый пароль обязателен");
+            }
+            else
+            {
+                var passwordErrors = PasswordValidator.Valid(request.Model.NewPassword);
+                if (passwordErrors.Any())
+                {
+                    viewResult.Errors.AddRange(passwordErrors);
+                }
+
+                if (request.Model.CurrentPassword == request.Model.NewPassword)
+                {
+                    viewResult.SamePassword = true;
+                    viewResult.Errors.Add("Новый пароль должен отличаться от текущего");
+                }               
             }
 
-            var passwordErrors = PasswordValidator.Valid(request.Model.NewPassword);
-            if (passwordErrors.Any())
+            if (request.Model.NewPassword != request.Model.ConfirmPassword)
             {
-                vewResult.Errors.AddRange(passwordErrors);
-                return vewResult;
+                viewResult.Errors.Add("Пароли не совпадают");
+            }
+
+            if (viewResult.Errors.Any())
+            {
+                return viewResult;
             }
 
             var changeResult = await userManager.ChangePasswordAsync(user, request.Model.CurrentPassword, request.Model.NewPassword);
@@ -78,17 +100,17 @@ namespace Application.Handlers.Profile.Commands
                 user.UserEditedAt = DateTime.UtcNow;
                 await userManager.UpdateAsync(user);
 
-                vewResult.Succeeded = true;
+                viewResult.Succeeded = true;
 
                 logger.LogInformation("Пользователь {UserName} успешно сменил пароль", user.UserName);
                 await signInManager.RefreshSignInAsync(user);
             }
             else
             {
-                vewResult.Errors = changeResult.Errors.Select(e => e.Description).ToList();
+                viewResult.Errors = changeResult.Errors.Select(e => e.Description).ToList();
             }
 
-            return vewResult;
+            return viewResult;
         }
     }
 }

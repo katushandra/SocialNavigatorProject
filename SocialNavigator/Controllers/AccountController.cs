@@ -74,11 +74,6 @@ namespace SocialNavigator.Controllers
         {
             ViewData["ReturnUrl"] = returnUrl;
 
-            if (!ModelState.IsValid)
-            {
-                return View(model);
-            }
-
             logger.LogInformation("Начало регистрации для пользователя {UserName}", model.UserName);
 
             var result = await mediator.Send(new RegisterCommand
@@ -104,16 +99,16 @@ namespace SocialNavigator.Controllers
 
                 foreach (var error in result.Errors)
                 {
-                    // Добавление ошибок в ModelState для отображения на форме
-                    if (error.Contains("Password"))
+
+                    if (error.Contains("Пароль") || error.Contains("должен содержать"))
                     {
                         ModelState.AddModelError(nameof(model.Password), error);
                     }
-                    else if (error.Contains("Email"))
+                    else if (error.Contains("Email") || error.Contains("email"))
                     {
                         ModelState.AddModelError(nameof(model.Email), error);
                     }
-                    else if (error.Contains("UserName"))
+                    else if (error.Contains("UserName") || error.Contains("Имя пользователя") || error.Contains("Логин"))
                     {
                         ModelState.AddModelError(nameof(model.UserName), error);
                     }
@@ -219,16 +214,22 @@ namespace SocialNavigator.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ResetPassword(ResetPasswordDto model)
         {
-            if (!ModelState.IsValid)
-            {
-                return View(model);
-            }
-
             var result = await mediator.Send(new ResetPasswordCommand { Model = model });
 
             foreach (var error in result.Errors)
             {
-                ModelState.AddModelError(nameof(model.Password), error);
+                if (error.Contains("Пароль") || error.Contains("должен содержать"))
+                {
+                    ModelState.AddModelError(nameof(model.Password), error);
+                }
+                else if (error.Contains("совпадают"))
+                {
+                    ModelState.AddModelError(nameof(model.ConfirmPassword), error);
+                }
+                else
+                {
+                    ModelState.AddModelError(string.Empty, error);
+                }
             }
 
             if (!result.Succeeded)

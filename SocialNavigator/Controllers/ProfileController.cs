@@ -132,36 +132,29 @@ namespace SocialNavigator.Controllers
         {
             var user = await userManager.GetUserAsync(User);
 
-            if (!ModelState.IsValid)
-            {
-                return View(model);
-            }
-
             var result = await mediator.Send(new ChangePasswordCommand
             {
                 Model = model,
                 UserId = user.Id
             });
 
-            if (result.CurrentPasswordInvalid)
-            {
-                ModelState.AddModelError(nameof(model.CurrentPassword), "Неверный текущий пароль");
-                return View(model);
-            }
-
-            if (result.SamePassword)
-            {
-                ModelState.AddModelError(nameof(model.NewPassword), "Новый пароль должен отличаться от текущего");
-                return View(model);
-            }
-
             if (result.Errors.Any())
             {
                 foreach (var error in result.Errors)
                 {
-                    ModelState.AddModelError(nameof(model.NewPassword), error);
+                    if (error.Contains("Пароль") || error.Contains("должен содержать"))
+                    {
+                        ModelState.AddModelError(nameof(model.NewPassword), error);
+                    }
+                    else if (error.Contains("Tекущий"))
+                    {
+                        ModelState.AddModelError(nameof(model.CurrentPassword), error);
+                    }
+                    else
+                    {
+                        ModelState.AddModelError(string.Empty, error);
+                    }
                 }
-                return View(model);
             }
 
             if (result.Succeeded)
@@ -170,13 +163,8 @@ namespace SocialNavigator.Controllers
                 return RedirectToAction("ProfileHome");
             }
 
-            foreach (var error in result.Errors)
-            {
-                ModelState.AddModelError(nameof(model.ConfirmPassword), error);
-            }
-
             return View(model);
-        }        
+        }
         #endregion
 
         #region MyObjects Мои объекты

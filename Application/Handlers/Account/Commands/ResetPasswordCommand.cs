@@ -39,14 +39,34 @@ namespace Application.Handlers.Account.Commands
         {
             var viewResult = new ResetPasswordResult();
 
+            if (string.IsNullOrWhiteSpace(request.Model.Password))
+            {
+                viewResult.Errors.Add("Новый пароль обязателен");
+            }
+            else
+            {
+                var passwordErrors = PasswordValidator.Valid(request.Model.Password);
+                if (passwordErrors.Any())
+                {
+                    viewResult.Errors.AddRange(passwordErrors);
+                }
+            }
+
+            if (request.Model.Password != request.Model.ConfirmPassword)
+            {
+                viewResult.Errors.Add("Пароли не совпадают");
+            }
+
+            if (viewResult.Errors.Any())
+            {
+                return viewResult;
+            }
+
             var user = await userManager.FindByEmailAsync(request.Model.Email);
             if (user == null)
             {
                 return viewResult;
             }
-
-            var passwordErrors = PasswordValidator.Valid(request.Model.Password);
-            viewResult.Errors.AddRange(passwordErrors);
 
             var result= await userManager.ResetPasswordAsync(user, request.Model.Code, request.Model.Password);
 

@@ -43,44 +43,53 @@ namespace Application.Handlers.Account.Commands
             if (string.IsNullOrWhiteSpace(request.Model.UserName))
             {
                 viewResult.Errors.Add("Имя пользователя обязательно");
-                return viewResult;
+            }
+            else
+            {
+                if (request.Model.UserName.Length < 3 || request.Model.UserName.Length > 50)
+                {
+                    viewResult.Errors.Add("Имя пользователя должно быть от 3 до 50 символов");
+                }
+
+                if (request.Model.UserName.Any(c => !allowedChars.Contains(c)))
+                {
+                    viewResult.Errors.Add("Имя пользователя может содержать только латинские буквы, цифры и символы -._@+");
+                }
             }
 
-            if (request.Model.UserName.Length < 3 || request.Model.UserName.Length > 50)
+            if (string.IsNullOrWhiteSpace(request.Model.Password))
             {
-                viewResult.Errors.Add("Имя пользователя должно быть от 3 до 50 символов");
-                return viewResult;
+                viewResult.Errors.Add("Пароль обязателен");
             }
-
-            if (request.Model.UserName.Any(c => !allowedChars.Contains(c)))
+            else
             {
-                viewResult.Errors.Add("Имя пользователя может содержать только латинские буквы, цифры и символы -._@+");
-                return viewResult;
+                var passwordErrors = PasswordValidator.Valid(request.Model.Password);
+                if (passwordErrors.Any())
+                {
+                    viewResult.Errors.AddRange(passwordErrors);
+                }
             }
 
             if (request.Model.Password != request.Model.PasswordConfirm)
             {
                 viewResult.Errors.Add("Пароли не совпадают");
-                return viewResult;
-            }
-
-            var passwordErrors = PasswordValidator.Valid(request.Model.Password);
-            if (passwordErrors.Any())
-            {
-                viewResult.Errors.AddRange(passwordErrors);
-                return viewResult;
             }
 
             if (string.IsNullOrWhiteSpace(request.Model.Email))
             {
                 viewResult.Errors.Add("Email обязателен");
-                return viewResult;
+            }
+            else
+            {
+                var mailAddress = new System.Net.Mail.MailAddress(request.Model.Email);
+                if (mailAddress.Address != request.Model.Email)
+                {
+                    viewResult.Errors.Add("Некорректный формат email");
+                }
             }
 
-            var mailAddress = new System.Net.Mail.MailAddress(request.Model.Email);
-            if (mailAddress.Address != request.Model.Email)
+            if (viewResult.Errors.Any())
             {
-                viewResult.Errors.Add("Некорректный формат email");
                 return viewResult;
             }
 
@@ -97,6 +106,7 @@ namespace Application.Handlers.Account.Commands
                 viewResult.Errors.Add("Пользователь с таким именем уже существует");
                 return viewResult;
             }
+
 
             var user = new AppUser
             {
