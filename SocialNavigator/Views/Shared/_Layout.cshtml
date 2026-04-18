@@ -1,4 +1,4 @@
-﻿@using Microsoft.AspNetCore.Identity
+﻿﻿@using Microsoft.AspNetCore.Identity
 @using Domain.Entity
 @using Domain.Entity.Enums
 @using Application.Common.Interfaces
@@ -27,7 +27,6 @@
 
     <meta name="viewport" content="width=device-width, maximum-scale=5, initial-scale=1">
     <!--[if IE]><meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'><![endif]-->
-
     <!-- up to 10% speed up for external res -->
     <link rel="dns-prefetch" href="https://fonts.googleapis.com/">
     <link rel="dns-prefetch" href="https://fonts.gstatic.com/">
@@ -44,6 +43,170 @@
     <link rel="shortcut icon" href="~/frontend/favicon.ico">
     <link rel="apple-touch-icon" href="~/frontend/demo.files/logo/icon_512x512.png">
 
+    <!-- Адаптация под мобильные устройства-->
+    <style>
+        @@media (max-width: 768px) {
+            /* Уменьшаем отступы */
+            .container {
+                padding-left: 12px;
+                padding-right: 12px;
+            }
+
+            .card-body {
+                padding: 1rem !important;
+            }
+
+            .p-4, .p-5 {
+                padding: 1rem !important;
+            }
+
+            .py-5, .py-6, .py-7 {
+                padding-top: 1.5rem !important;
+                padding-bottom: 1.5rem !important;
+            }
+            /* Заголовки */
+            h1.display-4, .display-4 {
+                font-size: 1.8rem;
+            }
+
+            h1.display-5, .display-5 {
+                font-size: 1.5rem;
+            }
+            /* Формы - кнопки на всю ширину */
+            .row > .col-md-6.mt-4 {
+                width: 100%;
+            }
+            /* Таблицы - горизонтальный скролл */
+            .table-responsive {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+            /* Карточки объектов - единые отступы */
+            .card.mb-3, .card.mb-4 {
+                margin-bottom: 1rem !important;
+            }
+            /* Карточки с d-flex - не центрируем */
+            .card-body.d-flex {
+                flex-direction: column;
+                align-items: flex-start !important;
+            }
+
+                .card-body.d-flex .ms-4 {
+                    margin-left: 0 !important;
+                    margin-top: 1rem;
+                    align-self: flex-start;
+                }
+            /* Карта */
+            #map {
+                height: 300px !important;
+            }
+            /* Навигация по статусам */
+            .nav.nav-lg {
+                flex-wrap: wrap;
+                gap: 0.5rem;
+            }
+
+                .nav.nav-lg .nav-link {
+                    padding: 0.4rem 0.8rem;
+                    font-size: 0.85rem;
+                }
+            /* Модальные окна */
+            .modal-dialog {
+                margin: 0.5rem;
+            }
+            /* Шаги в Add.cshtml */
+            .step-connector {
+                display: none;
+            }
+
+            .d-flex.justify-content-between.align-items-center {
+                flex-wrap: wrap;
+                gap: 0.5rem;
+            }
+            /* Фильтры */
+            .row.g-3 > [class*="col-"] {
+                margin-bottom: 0.5rem;
+            }
+            /* Кнопка "Найти" по центру */
+            .filter-button-wrapper {
+                text-align: center;
+            }
+            /* Кнопки в AdminPanel вертикально */
+            .admin-actions .col {
+                width: 100%;
+                margin-bottom: 0.75rem;
+            }
+            /* Выпадающие списки на мобильных */
+            select.form-select,
+            select.form-select-lg {
+                font-size: 16px !important;
+                padding: 0.75rem 2rem 0.75rem 0.75rem !important;
+                width: 100%;
+                max-width: 100%;
+                white-space: normal;
+                word-break: normal;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            /* Контейнер для select на мобильных */
+            .form-floating select.form-select {
+                min-height: 58px;
+            }
+            /* Кнопка "Добавить объект" - только иконка на мобильных */
+            .btn-add-object-mobile .btn-text {
+                display: none;
+            }
+
+            .btn-add-object-mobile .fi-plus {
+                margin-right: 0 !important;
+            }
+
+            .btn-add-object-mobile {
+                padding-left: 0.75rem !important;
+                padding-right: 0.75rem !important;
+            }
+        }
+
+        @@media (max-width: 576px) {
+            /* Еще меньше отступов */
+            .px-5 {
+                padding-left: 1rem !important;
+                padding-right: 1rem !important;
+            }
+            /* Скрываем некоторые элементы на очень маленьких экранах */
+            .badge-group {
+                flex-wrap: wrap;
+            }
+            /* Текст в карточках */
+            .card-title {
+                font-size: 1.1rem;
+            }
+            /* Статистика на админ-панели */
+            .col-xl-3.col-md-6 {
+                margin-bottom: 0.75rem;
+            }
+        }
+
+        /* Стиль для кнопки добавления объекта - адаптивный */
+        .btn-add-object-responsive .btn-text {
+            display: inline;
+        }
+
+        @@media (max-width: 576px) {
+            .btn-add-object-responsive .btn-text {
+                display: none;
+            }
+
+            .btn-add-object-responsive .fi-plus {
+                margin-right: 0 !important;
+            }
+
+            .btn-add-object-responsive {
+                padding-left: 0.65rem !important;
+                padding-right: 0.65rem !important;
+            }
+        }
+    </style>
     @RenderSection("css", required: false)
 </head>
 
@@ -115,12 +278,12 @@
 
             <!-- OPTIONS -->
             <ul class="list-inline list-unstyled mb-0 d-flex align-items-end">
-                 @if (SignInManager.IsSignedIn(User))
+                @if (SignInManager.IsSignedIn(User))
                 {
-                    // для автоизованного пользователя
+                    // для авторизованного пользователя
                     <li class="list-inline-item mx-1 float-start">
-                        <a href="/object/add" class="btn btn-sm btn-outline-light rounded-pill">
-                            <i class="fi fi-plus me-1"></i>Добавить объект
+                        <a href="/object/add" class="btn btn-sm btn-outline-light rounded-pill btn-add-object-responsive">
+                            <i class="fi fi-plus me-1"></i><span class="btn-text">Добавить объект</span>
                         </a>
                     </li>
 
@@ -194,7 +357,7 @@
     <main class="pt-4">
         @RenderBody()
     </main>
-       
+
     <!-- Footer -->
     <footer id="footer" class=" bg-dark text-white py-5">
         <div class="container">
@@ -212,7 +375,7 @@
                 </div>
                 <div class="col-lg-3 col-md-4 mb-4">
                     <h6 class="text-white mb-4">Помощь</h6>
-                    <ul class="list-unstyled">                     
+                    <ul class="list-unstyled">
                         <li><a href="/about#work" class="text-white-50 text-decoration-none">Как работать с картой</a></li>
                     </ul>
                 </div>
@@ -229,7 +392,7 @@
 
     <script src="~/frontend/assets/js/core.min.js"></script>
     <script src="~/frontend/assets/js/vendor_bundle.min.js"></script>
- 
+
     @RenderSection("Scripts", required: false)
 </body>
 </html>

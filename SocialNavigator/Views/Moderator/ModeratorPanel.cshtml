@@ -1,4 +1,4 @@
-﻿@using Domain.Entity.Enums
+﻿﻿@using Domain.Entity.Enums
 @model IEnumerable<Domain.DTO.ModerationSocialObjectDto>
 @{
     ViewData["Title"] = "Панель модератора";
@@ -46,7 +46,7 @@
             </div>
         }
 
-        <!-- Количесто объектов, ожидающих модерции -->
+        <!-- Количество объектов, ожидающих модерации -->
         @if (ViewBag.PendingCount > 0)
         {
             <div class="alert alert-info alert-dismissible fade show mb-4" role="alert">
@@ -66,31 +66,32 @@
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
         }
-        <!-- Навигация по статусам -->
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <ul class="nav nav-lg nav-invert">
+
+        <!-- Навигация по статусам и кнопка истории -->
+        <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap">
+            <ul class="nav nav-lg nav-invert mb-2 mb-sm-0">
                 <li class="nav-item">
                     <a class="nav-link @(ViewBag.CurrentStatus == null || ViewBag.CurrentStatus == "all" ? "active" : "")"
                        asp-action="ModeratorPanel" asp-route-status="all">
-                       Все <span class="badge bg-secondary ms-2">@totalCount</span>
+                        Все <span class="badge bg-secondary ms-2">@totalCount</span>
                     </a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link @(ViewBag.CurrentStatus == "Pending" ? "active" : "")"
                        asp-action="ModeratorPanel" asp-route-status="Pending">
-                       На модерации <span class="badge bg-warning ms-2">@(statusCounts != null && statusCounts.ContainsKey("Pending") ? statusCounts["Pending"] : 0)</span>
+                        На модерации <span class="badge bg-warning ms-2">@(statusCounts != null && statusCounts.ContainsKey("Pending") ? statusCounts["Pending"] : 0)</span>
                     </a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link @(ViewBag.CurrentStatus == "Approved" ? "active" : "")"
                        asp-action="ModeratorPanel" asp-route-status="Approved">
-                       Одобренные <span class="badge bg-success ms-2">@(statusCounts != null && statusCounts.ContainsKey("Approved") ? statusCounts["Approved"] : 0)</span>
+                        Одобренные <span class="badge bg-success ms-2">@(statusCounts != null && statusCounts.ContainsKey("Approved") ? statusCounts["Approved"] : 0)</span>
                     </a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link @(ViewBag.CurrentStatus == "Rejected" ? "active" : "")"
                        asp-action="ModeratorPanel" asp-route-status="Rejected">
-                       Отклоненные <span class="badge bg-danger ms-2">@(statusCounts != null && statusCounts.ContainsKey("Rejected") ? statusCounts["Rejected"] : 0)</span>
+                        Отклоненные <span class="badge bg-danger ms-2">@(statusCounts != null && statusCounts.ContainsKey("Rejected") ? statusCounts["Rejected"] : 0)</span>
                     </a>
                 </li>
                 <li class="nav-item">
@@ -101,8 +102,8 @@
                 </li>
             </ul>
 
-            <div class="d-flex gap-2">
-                <a asp-action="ModeratorHistory" class="btn btn-info btn-pill">
+            <div class="history-button-wrapper">
+                <a asp-action="ModeratorHistory" class="btn btn-info btn-pill w-100 w-sm-auto">
                     История модерации
                 </a>
             </div>
@@ -117,7 +118,7 @@
                     @foreach (var obj in Model)
                     {
                         <div class="card mb-3">
-                            <div class="card-body d-flex align-items-center">
+                            <div class="card-body d-flex align-items-start flex-wrap">
                                 <div class="flex-grow-1">
                                     <h5 class="card-title mb-2">@obj.Name</h5>
                                     <p class="card-text text-muted mb-0">
@@ -148,12 +149,12 @@
                                     </p>
                                 </div>
 
-                                <div class="d-flex gap-2 ms-4 align-items-center">
+                                <div class="d-flex gap-2 ms-0 ms-sm-4 mt-3 mt-sm-0 align-items-center">
                                     <a asp-action="ModeratorFull" asp-route-id="@obj.IdObject" class="btn btn-sm btn-outline-primary btn-pill">
                                         Подробнее
                                     </a>
-                                </div>                                  
-                               
+                                </div>
+
                             </div>
                         </div>
                     }
@@ -191,13 +192,31 @@
                                         {
                                             <span>Нет объектов для отображения</span>
                                         }
-                                    </h3>                                   
+                                    </h3>
                                 </div>
                             </div>
                         </div>
-                    </div>                    
+                    </div>
                 }
             </div>
         </div>
     </div>
 </div>
+
+<style>
+    @@media (max-width: 768px) {
+        .history-button-wrapper {
+            width: 100%;
+        }
+
+            .history-button-wrapper .btn {
+                width: 100%;
+            }
+    }
+
+    @@media (min-width: 769px) {
+        .history-button-wrapper .btn {
+            width: auto;
+        }
+    }
+</style>
